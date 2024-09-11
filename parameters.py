@@ -2,7 +2,7 @@ import numpy as np
 
 def generate_parameters(
     # Neutronics
-    dt=0.1, # fixed time step, 0.5
+    dt=0.01, # fixed time step, 0.5
     L = 172,  # Length of the spatial domain, cm
     # L = 22.9
     N = 200,  # Number of spatial points
@@ -62,6 +62,10 @@ def generate_parameters(
     bc_sL = 800,
     bc_g0 = 700,
     bc_gL = 1000,
+    # bc_s0 = 0,
+    # bc_sL = 0,
+    # bc_g0 = 0,
+    # bc_gL = 0,
     # Initial conditions
     # initialS = (bc_s0 + (bc_sL - bc_s0) * (0.5 + 0.5 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*2))) * 0.8).T
     # initialG = (bc_g0 + (bc_gL - bc_g0) * (0.5 + 0.5 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*2))) * 1.05).T
@@ -122,13 +126,14 @@ def generate_parameters(
 
     # Transport Delays
     # Pure time delays between components
-    tau_hx_c = 4, # (sec) delay from hx to core TDAMSRE p.6
-    tau_c_hx = 4, # (sec) subtracted 1 sec for external loop power generation node resident time; delay from core to fuel hx TDAMSRE p.6
-    tau_hx_r = 5, # (sec) fertile hx to core TDAMSRE p.6
-    tau_r_hx = 8, # (sec) core to fertile hx TDAMSRE p.6
-    tau_r_pp = 6, # TODO:delay from HX2 to the power plant, to be fixed
-    tau_pp_r = 6, # TODO:delay from the power plant to HX2, to be fixed
+    tau_hx_c = 1, # (sec) delay from hx to core TDAMSRE p.6
+    tau_c_hx = 1, # (sec) subtracted 1 sec for external loop power generation node resident time; delay from core to fuel hx TDAMSRE p.6
+    tau_hx_r = 1, # (sec) fertile hx to core TDAMSRE p.6
+    tau_r_hx = 1, # (sec) core to fertile hx TDAMSRE p.6
+    tau_r_pp = 1, # TODO:delay from HX2 to the power plant, to be fixed
+    tau_pp_r = 1, # TODO:delay from the power plant to HX2, to be fixed
     scale = 1,
+    phi_0 = 3 * np.ones(200),  # 0.421, 5226.54, Initial neutron flux, n/cm^2/s
     ):
     
     dz = L / (N - 1)  # Spatial step size, m
@@ -136,7 +141,7 @@ def generate_parameters(
     dx = L / (Nx - 1)
     Beta = sum(beta)
     delta=Beta*nu_sigma_f
-    phi_0 = 1e13 * np.ones(N)  # 0.421, 5226.54, Initial neutron flux, n/cm^2/s
+    
     # c0 = (sum(beta) * nu_sigma_f) / (sum(lambda_i)/6) * phi_0  # Initial precursor concentration
     c0 = np.zeros(6 * N)
     for i in range(6):

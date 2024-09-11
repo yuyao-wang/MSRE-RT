@@ -13,12 +13,12 @@ from transport_delay import transport_delay
 from power_plant import power_plant_temp
 
 def run_simulation(params, index):
-    time_span = 50000
+    time_span = 30000
     N = params['N']
     Nx = params['Nx']
 
     # Extract parameters
-    rho_insertion = -50 * np.ones(N)     # pcm
+    rho_insertion = 0 * np.ones(N)     # pcm
     rho = params['rho_init'] * np.ones(N)
     # rho = 0 * np.ones(N)
     y_n = np.zeros((7 * N, 1))
@@ -79,9 +79,9 @@ def run_simulation(params, index):
 
         Ts_core_0 = transport_delay(Ts_HX1_0, params['tau_hx_c'], Ts_in, buffer_hx_c, step)
         y_th = thermal_hydraulics(y_th, q_prime, Ts_core_0, params, step)
-        if step % 100 == 0:
-            temperature_fuel_r=y_th[:N,-1].T
-            temperature_graphite_r=y_th[N:,-1].T
+        # if step % 100000 == 0:
+        #     temperature_fuel_r=y_th[:N,-1].T
+        #     temperature_graphite_r=y_th[N:,-1].T
         temperature_fuel = y_th[:N, -1].T
         temperature_graphite = y_th[N:, -1].T
         Ts_core_L = y_th[-1, -1]
@@ -109,7 +109,7 @@ def run_simulation(params, index):
         y_pp = power_plant_temp(Tsss_pp_L, step)
         Tsss_pp_0 = y_pp
 
-        rho = reactivity(temperature_fuel_r, temperature_graphite_r, temperature_fuel, temperature_graphite, step, time_span, rho_insertion, params)
+        rho = reactivity(temperature_fuel, temperature_graphite, step, time_span, rho_insertion, params)
         rho_matrix[step] = rho[int(N / 2)]
         if step > 0:
             rho_dt_matrix[step] = rho[int(N / 2)] - rho_matrix[step - 1]
@@ -229,32 +229,32 @@ def save_specific_data(data, index):
     np.savez(data_file, data=data)
 
 def main():
-    run_simulation(generate_parameters(), 0)
+    # run_simulation(generate_parameters(), 0)
     # Define ranges of values for parameters
     # V_values = np.linspace(1.103497e6, 1.103497e8, 5)
     # D_values = np.linspace(0.96343*7, 0.96343*8, 5)     
     # sigma_a_values=np.linspace(0.002161937, 0.002161940, 30) # cm^-1        
     # nu_sigma_f_values = np.linspace(3.33029e-2/7, 3.33029e-2/8, 5) # cm^-1
     # L=22.9
-    # phi_0_values = np.linspace(1 * np.ones(200), 1e10*np.ones(200), 10)
+    phi_0_values = np.linspace(1 * np.ones(200), 20*np.ones(200), 10)
     # rho_init_values = np.linspace(-3e-5, 3e-5, 100)
     # scale_values = [0, 1e-1, 1e-2, 1e-3, 1e-4]
     # bc_s0_values = np.linspace(900, 940, 10)
     # bc_sL_values = np.linspace(930, 990, 10)
     # bc_g0_values = np.linspace(910, 950, 10)
     # bc_gL_values = np.linspace(940, 1000, 10)
-    U_values = np.linspace(10000, 36000, 10)
+    # U_values = np.linspace(10000, 36000, 10)
 
     # Generate parameter sets
     parameter_sets = [
-        generate_parameters(U=U) 
-        for U in U_values
+        generate_parameters(phi_0=phi_0) 
+        # for U in U_values
         # for rho_init in rho_init_values
         # for V in V_values
         # for D in D_values
         # for sigma_a in sigma_a_values
         # for nu_sigma_f in nu_sigma_f_values
-        # for phi_0 in phi_0_values
+        for phi_0 in phi_0_values
         # for scale in scale_values
         # for bc_s0 in bc_s0_values
         # for bc_sL in bc_sL_values
@@ -263,7 +263,7 @@ def main():
     ]
 
     # Run simulations in parallel
-    # Parallel(n_jobs=-1)(delayed(run_simulation)(params, idx) for idx, params in enumerate(parameter_sets))
+    Parallel(n_jobs=-1)(delayed(run_simulation)(params, idx) for idx, params in enumerate(parameter_sets))
 
 if __name__ == "__main__":
     main()
