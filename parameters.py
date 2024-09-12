@@ -2,7 +2,7 @@ import numpy as np
 
 def generate_parameters(
     # Neutronics
-    dt=0.01, # fixed time step, 0.5
+    dt=0.1, # fixed time step, 0.5
     L = 172,  # Length of the spatial domain, cm
     # L = 22.9
     N = 200,  # Number of spatial points
@@ -16,12 +16,12 @@ def generate_parameters(
     D = 0.96343 * 7,  # cm 
     # D = 1.02,  
     # sigma_a =0.0835   
-    sigma_a=0.002161939172413793, # cm^-1, 0.002161939172413793, 7.33-explode, 7.325-converge to 0     
-    nu_sigma_f = 0.004411764705882353, # cm^-1, 0.004411764705882353, 3.33029e-2, 6.9- explode at 7.33, 6.9-converge to 0 at 7.325
+    sigma_a = 0.00217, # 0.0021701, 1701-e, 1702-0, cm^-1, 0.002161939172413793, 7.33-explode, 7.325-converge to 0     
+    nu_sigma_f = 0.00442, # 0.00442, 0.00442-e, cm^-1, 0.004411764705882353, 3.33029e-2, 6.9- explode at 7.33, 6.9-converge to 0 at 7.325
     # sigma_a = 0.00054869,
     # nu_sigma_f = 0.00098328,
     # nu_sigma_f = 3.33029
-    sigma_f = 0.004411764705882353/2.41,  
+    sigma_f = 0.00442/2,  
     beta = [0.000228, 0.000788, 0.000664, 0.000736, 0.000136, 0.000088], # Delayed neutron fractions
     # Beta = sum(beta),      # 0.00264
     # Beta = 0.0045
@@ -55,17 +55,17 @@ def generate_parameters(
     # bc_gL = 968.71,
     # s_ref = 
     # bc_s0 = 922,
-    # bc_sL = 976,
-    # bc_g0 = 925,
-    # bc_gL = 993,
-    bc_s0 = 700,
-    bc_sL = 800,
-    bc_g0 = 700,
-    bc_gL = 1000,
-    # bc_s0 = 0,
-    # bc_sL = 0,
-    # bc_g0 = 0,
-    # bc_gL = 0,
+    # bc_sL = 935,
+    # bc_g0 = 922,
+    # bc_gL = 1100,
+    # bc_s0 = 700,
+    # bc_sL = 800,
+    # bc_g0 = 700,
+    # bc_gL = 1000,
+    bc_s0 = 300,
+    bc_sL = 500,
+    bc_g0 = 300,
+    bc_gL = 500,
     # Initial conditions
     # initialS = (bc_s0 + (bc_sL - bc_s0) * (0.5 + 0.5 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*2))) * 0.8).T
     # initialG = (bc_g0 + (bc_gL - bc_g0) * (0.5 + 0.5 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*2))) * 1.05).T
@@ -89,7 +89,7 @@ def generate_parameters(
     # v_L = 824.85,
     # v_H = 866.45,
     u_L = 800,
-    u_H = 800,
+    u_H = 850,
     v_L = 824.85,
     v_H = 866.45,
     # u_L = 0,
@@ -119,10 +119,10 @@ def generate_parameters(
 
     # Reactivity
     # rho_init = 0 * np.ones(N)
-    alpha_f    = -5.904E-5,  # -5.904E-5, U233 (drho/K) fuel salt temperature-reactivity feedback coefficient ORNL-TM-1647 p.3 % -5.904E-05; % ORNL-TM-0728 p. 101 %
-    alpha_g    = -6.624E-5,  # -6.624E-5, U233  (drho/K) graphite temperature-reactivity feedback coefficient ORNL-TM-1647 p.3 % -6.624E-05; % ORNL-TM-0728 p.101
-    tau_l  = 16.73,  # ORNL-TM-0728 %16.44; % (s)
-    tau_c  = 8.46,   # ORNL-TM-0728 %8.460; % (s)
+    alpha_f    = 5.904E-5,  # -5.904E-5, U233 (drho/K) fuel salt temperature-reactivity feedback coefficient ORNL-TM-1647 p.3 % -5.904E-05; % ORNL-TM-0728 p. 101 %
+    alpha_g    = 6.624E-5,  # -6.624E-5, U233  (drho/K) graphite temperature-reactivity feedback coefficient ORNL-TM-1647 p.3 % -6.624E-05; % ORNL-TM-0728 p.101
+    tau_l  = 16.44,  # ORNL-TM-0728 %16.44; % (s)
+    tau_c  = 8.460,   # ORNL-TM-0728 %8.460; % (s)
 
     # Transport Delays
     # Pure time delays between components
@@ -133,7 +133,7 @@ def generate_parameters(
     tau_r_pp = 1, # TODO:delay from HX2 to the power plant, to be fixed
     tau_pp_r = 1, # TODO:delay from the power plant to HX2, to be fixed
     scale = 1,
-    phi_0 = 3 * np.ones(200),  # 0.421, 5226.54, Initial neutron flux, n/cm^2/s
+    rho_init = 0,
     ):
     
     dz = L / (N - 1)  # Spatial step size, m
@@ -141,13 +141,12 @@ def generate_parameters(
     dx = L / (Nx - 1)
     Beta = sum(beta)
     delta=Beta*nu_sigma_f
-    
+    phi_0 = 1e13 * np.ones(N)  # 3.111, 15.778, 20, 5226.54, Initial neutron flux, n/cm^2/s
     # c0 = (sum(beta) * nu_sigma_f) / (sum(lambda_i)/6) * phi_0  # Initial precursor concentration
     c0 = np.zeros(6 * N)
     for i in range(6):
-        c0[i * N:(i + 1) * N] = (beta[i] * nu_sigma_f) / (lambda_i[i]/6) * phi_0
-    rho_init = 0 * np.ones(N)
-    
+        c0[i * N:(i + 1) * N] = (np.mean(beta) * nu_sigma_f) / (np.mean(lambda_i)) * phi_0
+       
     initialS = (bc_s0 + (bc_sL - bc_s0) * (0.5 + 0.5 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*2))) * 0.8).T
     initialG = (bc_g0 + (bc_gL - bc_g0) * (0.5 + 0.5 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*2))) * 1.05).T
     # Initial conditions for heat exchangers

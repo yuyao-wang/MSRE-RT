@@ -13,7 +13,7 @@ from transport_delay import transport_delay
 from power_plant import power_plant_temp
 
 def run_simulation(params, index):
-    time_span = 30000
+    time_span = 800
     N = params['N']
     Nx = params['Nx']
 
@@ -79,7 +79,7 @@ def run_simulation(params, index):
 
         Ts_core_0 = transport_delay(Ts_HX1_0, params['tau_hx_c'], Ts_in, buffer_hx_c, step)
         y_th = thermal_hydraulics(y_th, q_prime, Ts_core_0, params, step)
-        # if step % 100000 == 0:
+        # if step % 50 == 0:
         #     temperature_fuel_r=y_th[:N,-1].T
         #     temperature_graphite_r=y_th[N:,-1].T
         temperature_fuel = y_th[:N, -1].T
@@ -134,11 +134,15 @@ def run_simulation(params, index):
                  index=index)
 
     saved_data.append({
-                'V': params['V'],
-                'D': params['D'],
-                'sigma_a': params['sigma_a'],
-                'nu_sigma_f': params['nu_sigma_f'],
-                'scale': params['scale'],
+                # 'V': params['V'],
+                # 'D': params['D'],
+                # 'sigma_a': params['sigma_a'],
+                # 'nu_sigma_f': params['nu_sigma_f'],
+                # 'scale': params['scale'],
+                'bc_s0': params['bc_s0'],
+                'bc_sL': params['bc_sL'],
+                'bc_g0': params['bc_g0'],
+                'bc_gL': params['bc_gL'],
             })
     
     # Save specific data points
@@ -236,30 +240,31 @@ def main():
     # sigma_a_values=np.linspace(0.002161937, 0.002161940, 30) # cm^-1        
     # nu_sigma_f_values = np.linspace(3.33029e-2/7, 3.33029e-2/8, 5) # cm^-1
     # L=22.9
-    phi_0_values = np.linspace(1 * np.ones(200), 20*np.ones(200), 10)
+    # phi_0_values = np.linspace(1 * np.ones(200), 20*np.ones(200), 10)
     # rho_init_values = np.linspace(-3e-5, 3e-5, 100)
     # scale_values = [0, 1e-1, 1e-2, 1e-3, 1e-4]
-    # bc_s0_values = np.linspace(900, 940, 10)
-    # bc_sL_values = np.linspace(930, 990, 10)
-    # bc_g0_values = np.linspace(910, 950, 10)
-    # bc_gL_values = np.linspace(940, 1000, 10)
+    bc_s0_values = np.linspace(0, 1000, 10)
+    bc_sL_values = np.linspace(0, 1000, 10)
+    bc_g0_values = np.linspace(0, 1000, 10)
+    bc_gL_values = np.linspace(0, 1000, 10)
     # U_values = np.linspace(10000, 36000, 10)
+    # rho_init_values = np.linspace(-0.002, 0.002, 100)
 
     # Generate parameter sets
     parameter_sets = [
-        generate_parameters(phi_0=phi_0) 
+        generate_parameters(bc_g0=bc_g0, bc_gL=bc_gL, bc_s0=bc_s0, bc_sL=bc_sL) 
         # for U in U_values
         # for rho_init in rho_init_values
         # for V in V_values
         # for D in D_values
         # for sigma_a in sigma_a_values
         # for nu_sigma_f in nu_sigma_f_values
-        for phi_0 in phi_0_values
+        # for phi_0 in phi_0_values
         # for scale in scale_values
-        # for bc_s0 in bc_s0_values
-        # for bc_sL in bc_sL_values
-        # for bc_g0 in bc_g0_values
-        # for bc_gL in bc_gL_values
+        for bc_s0 in bc_s0_values
+        for bc_sL in bc_sL_values
+        for bc_g0 in bc_g0_values
+        for bc_gL in bc_gL_values
     ]
 
     # Run simulations in parallel

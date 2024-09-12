@@ -6,6 +6,7 @@
 \geometry{margin=1in} % Set margins to 1 inch
 
 \title{1D MSRE Modelling}
+\author{Yuyao}
 % \author{Your Name \\ Department Name \\ University Name}
 \date{\today}
 
@@ -24,10 +25,55 @@
     \item Transfer delay
     \item Feedback - Reactivity
 \end{itemize}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\textwidth]{MSRE.png}
+    \caption{MSRE}
+    \label{fig:MSRE}
+\end{figure}
 \section*{Equations}
+\subsection{Neutronics}
 \begin{equation}
     % \label{eq:example}
-    
+    \frac{1}{V} \frac{\partial \phi(x,t)}{\partial t} = D \frac{\partial^2 \phi(x,t)}{\partial x^2} + \left(-\Sigma_a + \frac{(1 - \beta)\nu\Sigma_f}{K_eff}\right)\phi(x,t) + \sum_{i = 1}^{6}{\lambda_i c_i(x,t)}
+\end{equation}
+\begin{equation}
+    \frac{\partial c_i(x,t)}{\partial t} = \beta \nu \Sigma_f \phi(x,t) - \lambda_i c_i(x,t)
+\end{equation}
+\begin{equation}
+    K_{eff}= \frac{1}{1-\rho}
+\end{equation}
+\subsection{Thermal-hydraulics}
+\begin{equation}
+    q'(x,t) = \frac{\phi(x,t) \Sigma_f V}{3.12 \times 10^{10} \, \frac{\text{fissions}}{\text{watt-sec}}}
+\end{equation}
+\begin{equation}
+    \frac{\partial T_s(x,t)}{\partial t} + v_c \frac{\partial T_s(x,t)}{\partial x} = \frac{H}{M_s c_{p,s}} \left( \gamma q'(x,t) + \frac{U}{H} \left( T_g(x,t) - T_s(x,t) \right) \right)
+\end{equation}
+\begin{equation}
+    \frac{\partial T_g(x,t)}{\partial t} = \frac{H}{M_g c_{p,g}} \left( (1 - \gamma) q'(x,t) - \frac{U}{H} \left( T_g(x,t) - T_s(x,t) \right) \right)
+\end{equation}
+
+\subsection{Reactivity feedback}
+\begin{equation}
+    \rho(t) = \rho_0 + \rho_{fb}(t) + \rho_{insertion}(t)
+\end{equation}
+\begin{equation}
+    \rho_0 = \beta - \sum_{i=1}^{6} \frac{\beta_i}{\left( 1 + \frac{1}{\lambda_i \tau_C} \left[ 1 - e^{-\lambda_i \tau_L} \right] \right)}
+\end{equation}
+\begin{equation}
+    \rho_{fb}(t) = \alpha_f \left[ T_f(x,0) - T_f(x,t) \right] + \alpha_g \left[ T_g(x,0) - T_g(x,t) \right]
+\end{equation}
+
+\subsection{Heat exchanger 1 and 2}
+\begin{equation}
+    \frac{\partial T_s^{h.e.}(z, t)}{\partial t} + v_s^{h.e.} \frac{\partial T_s^{h.e.}(z, t)}{\partial z} = \frac{U^{h.e.}}{M_s^{h.e.} \cdot c_{p,s}} \left( T_s^{h.e.}(z, t) - T_{ss}(z, t) \right)
+\end{equation}
+\begin{equation}
+    \frac{\partial T_{ss}(z, t)}{\partial t} + v_{ss}^{h.e.} \frac{\partial T_{ss}(z, t)}{\partial z} = \frac{U^{h.e.}}{M_{ss}^{h.e.} \cdot c_{p,ss}} \left( T_s^{h.e.}(z, t) - T_{ss}(z, t) \right)
+\end{equation}
+Equations for heat exchanger 2 is similar to that for heat exchanger 1.
+
     
 % \begin{itemize}
 %     \item List of materials used.
@@ -37,14 +83,42 @@
 
 \section*{Methods}
 % Outline the procedure step by step. Number the steps for clarity.
+In a time loop:
+\begin{itemize}
+    \item $dvalue\_dt$: discrete the space into grid points (By multiplying a matrix)
+    \item $updated\_value$: solve the time domain differential equations ($solve\_ivp$: explicit method like $RK23$ is fast but not stable, implicit method like Radau can be stable but slow)
+    \item passing the updated value to the next function
+\end{itemize}
 
 \section*{Results}
+When the system is stable, reactivity should be 0 ($K_{eff}=1$), and the neutron flux and DN precursors should be stable. \\
+To get results faster, they are solved by $RK23$, but the results are generally similar to the implicit method, except for some oscillations. \\
+% With no insertion added: \\
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=0.5\textwidth]{example-image}
-    \caption{Example of a Figure}
-    \label{fig:example}
+    \includegraphics[width=0.9\textwidth]{neutron_flux_without_insertion.png}
+    \caption{No insertion}
+    \label{fig:neutron_flux_without_insertion}
 \end{figure}
+% With insertion at time=25000: \\
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{neutron_flux_and_precursors.png}
+    \caption{50 pcm reactivity insertion at time=25000}
+    \label{fig:neutron_flux_and_precursors}
+\end{figure}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{precursors_with_time_middle.png}
+    \caption{precursor with time middle (with insertion at time=25000)}
+    \label{fig:precursor_with_time_middle}
+\end{figure}
+% \begin{figure}[h!]
+%     \centering
+%     \includegraphics[width=1\textwidth]{temperature_in_heat_exchangers.png}
+%     \caption{temperature in heat exchangers}
+%     \label{fig:temperature_in_heat_exchangers}
+% \end{figure}
 % Include the data you collected in the lab. You can use tables or figures to present the results clearly.
 
 % \begin{table}[h!]
@@ -62,12 +136,24 @@
 % \end{table}
 
 \section*{Problems to fix}
+\begin{itemize}
+    \item The model is too sensitive to some parameters, which makes the model too sensitive to reactivity
+    \item A very small reactivity insertion can cause the model to diverge, which makes rod control impossible
+    \item The temperature of graphite should be a little higher than the fuel salt, but the model always shows the identical temperature of graphite and fuel salt
+\end{itemize}
+Possible solutions:
+\begin{itemize}
+    \item Continue trying modifying parameters 
+    \item The reactivity model may be not accurate (very few articles I can find about 1D reactivity feedback model, and the equation I'm using now comes from a 0D model, and I just expanded it to vector directly)
+    \item The automatic converter from python to c++ may cause some problems, as Yulin suggested, I should all use pointers to pass values to let FPGA smoothly run the model in the further work, but automatic converters usually use values to pass values
+    \item I plan to convert the model to c++ after the model is well tested in python including the rode insertion control part, as c++ is not easy to debug
+\end{itemize}
 % Discuss the results you obtained. Were the results as expected? What errors might have occurred? How could the experiment be improved?
 
 % \section*{Conclusion}
 % Summarize the key findings of the experiment. Did you meet the objectives? 
 
-\section*{References}
+% \section*{References}
 % List any sources, textbooks, or articles that were referenced in the lab report.
 
 \end{document}

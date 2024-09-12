@@ -46,14 +46,14 @@ def neutronics(y_n, rho, step, params):
         for i in range(6):
             lambda_ci += lambda_i[i] * y[(i + 1) * N:(i + 2) * N]
 
-        rhs_phi = B @ phi + dt * V * ((-sigma_a + ((1 - Beta) * nu_sigma_f / Keff)) * phi + lambda_ci)
+        rhs_phi = B @ phi + dt * V * ((-sigma_a + ((1 - Beta) * (1 + rho) * nu_sigma_f)) * phi + lambda_ci)
 
         phi_new = spsolve(A, rhs_phi)
         dphi_dt = (phi_new - phi) / dt
 
         dci_dt = np.zeros((6, N))
         for i in range(6):
-            dci_dt[i] = beta[i] * (nu_sigma_f / Keff) * phi - (lambda_i[i] * y[(i + 1) * N:(i + 2) * N])
+            dci_dt[i] = beta[i] * (nu_sigma_f) * phi - (lambda_i[i] * y[(i + 1) * N:(i + 2) * N])
         
         return np.concatenate([dphi_dt, dci_dt[0], dci_dt[1], dci_dt[2], dci_dt[3], dci_dt[4], dci_dt[5]])
 

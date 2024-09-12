@@ -21,9 +21,9 @@ def reactivity(temperature_fuel, temperature_graphite, step, time_span, rho_inse
     for i in range(6):
         rho_0=rho_0-beta[i]/(1+(1/(lambda_i[i]*tau_c))*(1-np.exp(-lambda_i[i]*tau_l)))
     # rho_0 = 0.0011211260746046986
-    # rho_0 = 0.000009
+    # rho_0 = 0.001
     # print(f'rho_0{rho_0}')
-    rho_0=0*np.ones(N)
+    rho_0=0.0001*np.ones(N)
     
     # rho_0= - 4 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*4)+(L/4))
     # print(rho_0)
@@ -61,10 +61,11 @@ def reactivity(temperature_fuel, temperature_graphite, step, time_span, rho_inse
     rho_feedback=(initialS-temperature_fuel)*alpha_f+(initialG-temperature_graphite)*alpha_g
     # rho_feedback = rho_feedback *0
     rho=rho_0+rho_feedback*scale+react
-    
-    # rho=rho_init * np.ones(N)
+    print(f'rho: {rho.mean()}')
     
     # rho=0 * np.ones(N)
+    
+    # rho=rho_0
     # rho=-0.369e-4 * np.ones(N)
     # if step<=1:
     #     rho=0.0045/2*step*np.ones(N)
