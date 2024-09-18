@@ -13,7 +13,7 @@ from transport_delay import transport_delay
 from power_plant import power_plant_temp
 
 def run_simulation(params, index):
-    time_span = 800
+    time_span = 2000
     N = params['N']
     Nx = params['Nx']
 
@@ -79,9 +79,9 @@ def run_simulation(params, index):
 
         Ts_core_0 = transport_delay(Ts_HX1_0, params['tau_hx_c'], Ts_in, buffer_hx_c, step)
         y_th = thermal_hydraulics(y_th, q_prime, Ts_core_0, params, step)
-        # if step % 50 == 0:
-        #     temperature_fuel_r=y_th[:N,-1].T
-        #     temperature_graphite_r=y_th[N:,-1].T
+        if step % 50 == 0:
+            temperature_fuel_r=y_th[:N,-1].T
+            temperature_graphite_r=y_th[N:,-1].T
         temperature_fuel = y_th[:N, -1].T
         temperature_graphite = y_th[N:, -1].T
         Ts_core_L = y_th[-1, -1]
@@ -109,10 +109,10 @@ def run_simulation(params, index):
         y_pp = power_plant_temp(Tsss_pp_L, step)
         Tsss_pp_0 = y_pp
 
-        rho = reactivity(temperature_fuel, temperature_graphite, step, time_span, rho_insertion, params)
-        rho_matrix[step] = rho[int(N / 2)]
+        rho = reactivity(temperature_fuel_r, temperature_graphite_r, temperature_fuel, temperature_graphite, step, time_span, rho_insertion, params)
+        rho_matrix[step] = rho.mean()
         if step > 0:
-            rho_dt_matrix[step] = rho[int(N / 2)] - rho_matrix[step - 1]
+            rho_dt_matrix[step] = rho.mean() - rho_matrix[step - 1]
 
     # Plotting results including Ts_HX1
     plot_results(z=np.linspace(0, params['L'], N),
@@ -233,7 +233,7 @@ def save_specific_data(data, index):
     np.savez(data_file, data=data)
 
 def main():
-    # run_simulation(generate_parameters(), 0)
+    run_simulation(generate_parameters(), 0)
     # Define ranges of values for parameters
     # V_values = np.linspace(1.103497e6, 1.103497e8, 5)
     # D_values = np.linspace(0.96343*7, 0.96343*8, 5)     
@@ -268,7 +268,7 @@ def main():
     ]
 
     # Run simulations in parallel
-    Parallel(n_jobs=-1)(delayed(run_simulation)(params, idx) for idx, params in enumerate(parameter_sets))
+    # Parallel(n_jobs=-1)(delayed(run_simulation)(params, idx) for idx, params in enumerate(parameter_sets))
 
 if __name__ == "__main__":
     main()

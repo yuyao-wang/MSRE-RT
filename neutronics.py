@@ -33,7 +33,7 @@ def neutronics(y_n, rho, step, params):
     I = np.eye(N)
     A = csc_matrix(I - 0.5 * dt * V * D * D2_sparse)
     B = csc_matrix(I + 0.5 * dt * V * D * D2_sparse)
-
+    # B = V * D * dt * D2
     # Compute Keff (effective multiplication factor)
     Keff = 1 / (np.ones(N) - rho)
     print(f"Keff(N/2): {Keff[int(N/2)]}, Keff(0): {Keff[0]}, Keff(N-1): {Keff[N-1]}, Keff(avg): {Keff.mean()}")  
@@ -50,6 +50,7 @@ def neutronics(y_n, rho, step, params):
 
         phi_new = spsolve(A, rhs_phi)
         dphi_dt = (phi_new - phi) / dt
+        # dphi_dt = rhs_phi / dt
 
         dci_dt = np.zeros((6, N))
         for i in range(6):

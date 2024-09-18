@@ -13,11 +13,13 @@ def generate_parameters(
     V = 1.103497 * 1e7,  # cm/s   
     # V = 2.2e5,        
     # D = 0.390016 * 8   
-    D = 0.96343 * 7,  # cm 
+    D = 0.96343 * 7.8,  # cm 
     # D = 1.02,  
     # sigma_a =0.0835   
-    sigma_a = 0.00217, # 0.0021701, 1701-e, 1702-0, cm^-1, 0.002161939172413793, 7.33-explode, 7.325-converge to 0     
-    nu_sigma_f = 0.00442, # 0.00442, 0.00442-e, cm^-1, 0.004411764705882353, 3.33029e-2, 6.9- explode at 7.33, 6.9-converge to 0 at 7.325
+    sigma_a =  0.0019945, # 0.00199457055, 0.0021701, 1701-e, 1702-0, cm^-1, 0.002161939172413793, 7.33-explode, 7.325-converge to 0     
+    nu_sigma_f = 0.0045, # 0.00441-0, 0.00442-e, cm^-1, 0.004411764705882353, 3.33029e-2
+    # 02 rho: -0.0012863242339642485
+    # rho: -5.867062598823416e-07
     # sigma_a = 0.00054869,
     # nu_sigma_f = 0.00098328,
     # nu_sigma_f = 3.33029
@@ -62,10 +64,10 @@ def generate_parameters(
     # bc_sL = 800,
     # bc_g0 = 700,
     # bc_gL = 1000,
-    bc_s0 = 300,
-    bc_sL = 500,
-    bc_g0 = 300,
-    bc_gL = 500,
+    bc_s0 = 0,
+    bc_sL = 0,
+    bc_g0 = 0,
+    bc_gL = 0,
     # Initial conditions
     # initialS = (bc_s0 + (bc_sL - bc_s0) * (0.5 + 0.5 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*2))) * 0.8).T
     # initialG = (bc_g0 + (bc_gL - bc_g0) * (0.5 + 0.5 * np.sin(np.pi * (np.linspace(0, L, N) ) / (L*2))) * 1.05).T
@@ -119,19 +121,19 @@ def generate_parameters(
 
     # Reactivity
     # rho_init = 0 * np.ones(N)
-    alpha_f    = 5.904E-5,  # -5.904E-5, U233 (drho/K) fuel salt temperature-reactivity feedback coefficient ORNL-TM-1647 p.3 % -5.904E-05; % ORNL-TM-0728 p. 101 %
-    alpha_g    = 6.624E-5,  # -6.624E-5, U233  (drho/K) graphite temperature-reactivity feedback coefficient ORNL-TM-1647 p.3 % -6.624E-05; % ORNL-TM-0728 p.101
+    alpha_f    =  - 5.904E-5,  # -5.904E-5, U233 (drho/K) fuel salt temperature-reactivity feedback coefficient ORNL-TM-1647 p.3 % -5.904E-05; % ORNL-TM-0728 p. 101 %
+    alpha_g    =  - 6.624E-5,  # -6.624E-5, U233  (drho/K) graphite temperature-reactivity feedback coefficient ORNL-TM-1647 p.3 % -6.624E-05; % ORNL-TM-0728 p.101
     tau_l  = 16.44,  # ORNL-TM-0728 %16.44; % (s)
     tau_c  = 8.460,   # ORNL-TM-0728 %8.460; % (s)
 
     # Transport Delays
     # Pure time delays between components
-    tau_hx_c = 1, # (sec) delay from hx to core TDAMSRE p.6
-    tau_c_hx = 1, # (sec) subtracted 1 sec for external loop power generation node resident time; delay from core to fuel hx TDAMSRE p.6
-    tau_hx_r = 1, # (sec) fertile hx to core TDAMSRE p.6
-    tau_r_hx = 1, # (sec) core to fertile hx TDAMSRE p.6
-    tau_r_pp = 1, # TODO:delay from HX2 to the power plant, to be fixed
-    tau_pp_r = 1, # TODO:delay from the power plant to HX2, to be fixed
+    tau_hx_c = 5, # (sec) delay from hx to core TDAMSRE p.6
+    tau_c_hx = 5, # (sec) subtracted 1 sec for external loop power generation node resident time; delay from core to fuel hx TDAMSRE p.6
+    tau_hx_r = 5, # (sec) fertile hx to core TDAMSRE p.6
+    tau_r_hx = 5, # (sec) core to fertile hx TDAMSRE p.6
+    tau_r_pp = 5, # TODO:delay from HX2 to the power plant, to be fixed
+    tau_pp_r = 5, # TODO:delay from the power plant to HX2, to be fixed
     scale = 1,
     rho_init = 0,
     ):
