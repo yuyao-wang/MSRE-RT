@@ -53,7 +53,7 @@ def reactivity(temperature_fuel_r, temperature_graphite_r, temperature_fuel, tem
     # react = timeseries(reactdata,reacttime);
     
     reactdata = [rho_init * 1e-5, rho_insertion * 1e-5]
-    if step < time_span/2:
+    if step < time_span/5:
         react = reactdata[0]
     else:
         react = reactdata[1]
