@@ -1,11 +1,13 @@
 import numpy as np
 import os
-from joblib import Parallel, delayed
-import matplotlib.pyplot as plt
 from collections import deque
 
+try:
+    import matplotlib.pyplot as plt
+except ImportError:  # pragma: no cover - optional plotting dependency
+    plt = None
+
 from parameters import generate_parameters
-from reactivity import reactivity
 from neutronics import neutronics
 from thermal_hydraulics import thermal_hydraulics
 from HX1 import HX1
@@ -41,25 +43,27 @@ def run_simulation(params, index):
     N = params['N']
     Nx = params['Nx']
     mid_idx = N // 2
+    precursor_groups = params['precursor_groups']
     verbose = params.get('verbose', False)
     log_every = params.get('log_every', 1)
     initialS = params['initialS']
     initialG = params['initialG']
 
     # Extract parameters
-    rho_insertion = - 0 * np.ones(N)     # pcm, add control rod insertion -> negative reactivity
-    rho = params['rho_init'] * np.ones(N)
-    # rho = 0 * np.ones(N)
-    y_n = np.zeros((7 * N, 1))
-    q_prime = np.zeros((N, 1))
+    rho = np.zeros(N)
+    rod_position = 0.0
+    y_n = np.zeros((params['neutronics_state_size'], 1))
+    q_prime = np.zeros(N)
     y_th = np.zeros((2 * N, 1))
     y_hx1 = np.zeros((2 * Nx, 1))
     y_hx2 = np.zeros((2 * Nx, 1))
+    y_hx1[:, 0] = np.concatenate([params['u_init'], params['v_init']])
+    y_hx2[:, 0] = np.concatenate([params['u2_init'], params['v2_init']])
     
-    Tss_HX2_0 = 0
-    Ts_HX1_0 = 0
-    Tss_HX1_0 = 0
-    Tsss_pp_0 = 0
+    Tss_HX2_0 = params['Tss_in']
+    Ts_HX1_0 = params['Ts_in']
+    Tss_HX1_0 = params['Tss_in']
+    Tsss_pp_0 = params['Tsss_in']
     buffer_hx_c = deque()
     buffer_c_hx = deque()
     buffer_r_hx = deque()
@@ -72,15 +76,46 @@ def run_simulation(params, index):
     Tss_out = params['Tss_out']
     Tsss_in = params['Tsss_in']
     Tsss_out = params['Tsss_out']
+    temperature_fuel = initialS.copy()
+    temperature_graphite = initialG.copy()
 
     # Initial plotting matrices
     rho_matrix = np.zeros((time_span, 1))
     phi_middle_matrix = np.zeros((time_span, 1))
-    ci_middle_matrix = np.zeros((time_span, 6))
+    ci_middle_matrix = np.zeros((time_span, precursor_groups))
     temperature_fuel_middle_matrix = np.zeros((time_span, 1))
+    temperature_graphite_middle_matrix = np.zeros((time_span, 1))
     rho_dt_matrix = np.zeros((time_span, 1))
     neutron_dt_matrix = np.zeros((time_span, 1))
     Ts_HX1_matrix = np.zeros((Nx, time_span))
+    total_power_matrix = np.zeros((time_span, 1))
+    time_axis = params['outer_dt'] * np.arange(time_span)
+    system_diagnostics = {
+        'time': time_axis,
+        'core_inlet': np.zeros(time_span),
+        'core_outlet': np.zeros(time_span),
+        'hx1_hot_in': np.zeros(time_span),
+        'hx1_hot_out': np.zeros(time_span),
+        'hx1_cold_in': np.zeros(time_span),
+        'hx1_cold_out': np.zeros(time_span),
+        'hx2_hot_in': np.zeros(time_span),
+        'hx2_hot_out': np.zeros(time_span),
+        'hx2_cold_in': np.zeros(time_span),
+        'hx2_cold_out': np.zeros(time_span),
+        'brayton_T1': np.zeros(time_span),
+        'brayton_T2': np.zeros(time_span),
+        'brayton_T2r': np.zeros(time_span),
+        'brayton_T3': np.zeros(time_span),
+        'brayton_T4': np.zeros(time_span),
+        'brayton_T4r': np.zeros(time_span),
+        'brayton_W_c': np.zeros(time_span),
+        'brayton_W_t': np.zeros(time_span),
+        'brayton_W_net': np.zeros(time_span),
+        'brayton_Q_in': np.zeros(time_span),
+        'brayton_Q_out': np.zeros(time_span),
+        'brayton_eta': np.zeros(time_span),
+        'core_power': np.zeros(time_span),
+    }
 
     # Steps to save data (0, 1/3, 1/2, 2/3, 1 of total steps)
     save_steps = [0, time_span//3, time_span//2, 2*time_span//3, time_span-1]
@@ -89,35 +124,47 @@ def run_simulation(params, index):
 
     for step in range(time_span):
         print(f'Step {step}/{time_span}')
-        
-        y_n, q_prime = neutronics(y_n[:, -1], rho, step, params)
-        q_prime = q_prime * params['sigma_f'] * params['A'] / (params['flux_to_power'])
-        phi = y_n[:N, -1].T
-        ci = y_n[N:, -1].T
+
+        state = {
+            'temperature_fuel': temperature_fuel,
+            'temperature_graphite': temperature_graphite,
+            'rod_position': rod_position,
+            'external_reactivity': 0.0,
+        }
+        y_n, q_prime = neutronics(y_n[:, -1], state, step, params)
+        phi_fast = y_n[:N, -1].T
+        phi_thermal = y_n[N:2 * N, -1].T
+        phi = phi_fast + phi_thermal
+        ci = y_n[2 * N:, -1].T
         phi_middle_matrix[step] = phi[mid_idx]
-        neutron_dt_matrix[step] = (phi[mid_idx] - phi_middle_matrix[step - 1]) * 100
+        if step > 0:
+            neutron_dt_matrix[step] = (phi[mid_idx] - phi_middle_matrix[step - 1]) * 100
+        total_power_matrix[step] = np.trapz(q_prime, params['z'])
 
         if step in save_steps:
             saved_data.append({
                 'step': step,
+                'fast_flux': phi_fast[mid_idx],
+                'thermal_flux': phi_thermal[mid_idx],
                 'neutron_flux': phi[mid_idx],
                 'neutron_flux_change': neutron_dt_matrix[step]
             })
 
-        ci_groups = ci.reshape(6, N)
+        ci_groups = ci.reshape(precursor_groups, N)
         ci_middle_matrix[step, :] = ci_groups[:, mid_idx]
         if step == selected_step:
             ci_groups_selected_step = ci_groups.copy()
 
-        Ts_core_0 = transport_delay(Ts_HX1_0, params['tau_hx_c'], Ts_in, buffer_hx_c, step)
+        if params.get('core_inlet_mode', 'prescribed') == 'hx_coupled':
+            Ts_core_0 = transport_delay(Ts_HX1_0, params['tau_hx_c'], Ts_in, buffer_hx_c, step)
+        else:
+            Ts_core_0 = Ts_in
         y_th = thermal_hydraulics(y_th, q_prime, Ts_core_0, params, step)
-        # if step % 800 == 0:
-        #     temperature_fuel_r=y_th[:N,-1].T
-        #     temperature_graphite_r=y_th[N:,-1].T
         temperature_fuel = y_th[:N, -1].T
         temperature_graphite = y_th[N:, -1].T
-        Ts_core_L = y_th[-1, -1]
+        Ts_core_L = temperature_fuel[-1]
         temperature_fuel_middle_matrix[step] = temperature_fuel[mid_idx]
+        temperature_graphite_middle_matrix[step] = temperature_graphite[mid_idx]
 
         Ts_HX1_L = transport_delay(Ts_core_L, params['tau_c_hx'], Ts_out, buffer_c_hx, step)
         Tss_HX1_0 = transport_delay(Tss_HX2_0, params['tau_r_hx'], Tss_in, buffer_r_hx, step)
@@ -138,10 +185,27 @@ def run_simulation(params, index):
         Tsss_HX2_L = Tsss_HX2[-1]
 
         Tsss_pp_L = transport_delay(Tsss_HX2_L, params['tau_r_pp'], Tsss_out, buffer_r_pp, step)
-        y_pp = power_plant_temp(Tsss_pp_L, step)
+        y_pp = power_plant_temp(Tsss_pp_L, params, step)
         Tsss_pp_0 = y_pp
+        pp_state = params.get('last_power_plant', {})
 
-        rho = reactivity(initialS, initialG, temperature_fuel, temperature_graphite, step, time_span, rho_insertion, params)
+        system_diagnostics['core_inlet'][step] = Ts_core_0
+        system_diagnostics['core_outlet'][step] = Ts_core_L
+        system_diagnostics['hx1_hot_in'][step] = Ts_HX1_L
+        system_diagnostics['hx1_hot_out'][step] = Ts_HX1_0
+        system_diagnostics['hx1_cold_in'][step] = Tss_HX1_0
+        system_diagnostics['hx1_cold_out'][step] = Tss_HX1_L
+        system_diagnostics['hx2_hot_in'][step] = Tss_HX2_L
+        system_diagnostics['hx2_hot_out'][step] = Tss_HX2_0
+        system_diagnostics['hx2_cold_in'][step] = Tsss_HX2_0
+        system_diagnostics['hx2_cold_out'][step] = Tsss_HX2_L
+        system_diagnostics['core_power'][step] = total_power_matrix[step, 0]
+        for key in ('T1', 'T2', 'T2r', 'T3', 'T4', 'T4r', 'W_c', 'W_t', 'W_net', 'Q_in', 'Q_out', 'eta_b'):
+            if key in pp_state:
+                target = 'brayton_eta' if key == 'eta_b' else f'brayton_{key}'
+                system_diagnostics[target][step] = pp_state[key]
+
+        rho = np.full(N, params.get('last_global_rho', 0.0))
         rho_matrix[step] = rho.mean()
         if step > 0:
             rho_dt_matrix[step] = rho.mean() - rho_matrix[step - 1]
@@ -160,27 +224,36 @@ def run_simulation(params, index):
                  Tsss_HX2=Tsss_HX2,
                  phi_middle_matrix=phi_middle_matrix,
                  temperature_fuel_middle_matrix=temperature_fuel_middle_matrix,
+                 temperature_graphite_middle_matrix=temperature_graphite_middle_matrix,
                  ci_middle_matrix=ci_middle_matrix,
                  rho_dt_matrix=rho_dt_matrix,
                  neutron_dt_matrix=neutron_dt_matrix,
+                 total_power_matrix=total_power_matrix,
+                 system_diagnostics=system_diagnostics,
                  index=index)
 
     saved_data.append({
-                'V': params['V'],
-                'D': params['D'],
-                'sigma_a': params['sigma_a'],
-                'nu_sigma_f': params['nu_sigma_f'],
+                'neutron_velocity': params['neutron_velocity'],
+                'D_ref_mean': params['D_ref'].mean(axis=1),
+                'sigma_a_ref_mean': params['sigma_a_ref'].mean(axis=1),
+                'nu_sigma_f_ref_mean': params['nu_sigma_f_ref'].mean(axis=1),
                 'scale': params['scale'],
+                'steady_state_summary': params.get('steady_state_summary', {}),
             })
     
     # Save specific data points
     save_specific_data(saved_data, index)
     save_ci_groups_csv(selected_step, ci_groups_selected_step, params, index)
+    save_system_diagnostics(system_diagnostics, index)
 
 def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_graphite,
                  Ts_HX1_matrix, Tss_HX1, Tss_HX2, Tsss_HX2, phi_middle_matrix,
-                 temperature_fuel_middle_matrix, ci_middle_matrix, rho_dt_matrix,
-                 neutron_dt_matrix, index):
+                 temperature_fuel_middle_matrix, temperature_graphite_middle_matrix,
+                 ci_middle_matrix, rho_dt_matrix, neutron_dt_matrix, total_power_matrix,
+                 system_diagnostics, index):
+    if plt is None:
+        return
+
     os.makedirs('simulation_results', exist_ok=True)
     plot_dir = f'simulation_results/plots_{index}'
     os.makedirs(plot_dir, exist_ok=True)
@@ -190,7 +263,8 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     ax[0, 0].plot(z, phi)
     ax[0, 0].set_title('Neutron Flux')
 
-    for i in range(6):
+    precursor_groups = ci_middle_matrix.shape[1]
+    for i in range(precursor_groups):
         ax[0, 1].plot(z, ci[i * len(z):(i + 1) * len(z)], label=f'Ci{i + 1}')
         ax[0, 1].legend()
     ax[0, 1].set_title('Delayed Neutron Precursors')
@@ -231,7 +305,7 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
 
     # Third plot: Delayed Neutron Precursors with time in the middle
     fig, ax = plt.subplots(figsize=(14, 6))
-    for i in range(6):
+    for i in range(precursor_groups):
         ax.plot(ci_middle_matrix[:, i], label=f'Ci{i + 1}')
         ax.legend()
     ax.set_title('Delayed Neutron Precursors with time in the middle')
@@ -255,11 +329,74 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     plt.savefig(f'{plot_dir}/rho_dt.png')
     plt.close(fig)
 
+    fig, ax = plt.subplots(2, 2, figsize=(15, 8))
+    time = system_diagnostics['time']
+    ax[0, 0].plot(time, system_diagnostics['core_inlet'], label='Core Inlet')
+    ax[0, 0].plot(time, system_diagnostics['core_outlet'], label='Core Outlet')
+    ax[0, 0].plot(time, system_diagnostics['hx1_hot_out'], label='HX1 Salt Outlet')
+    ax[0, 0].legend()
+    ax[0, 0].set_title('Primary Loop Temperatures')
+
+    ax[0, 1].plot(time, system_diagnostics['hx1_cold_in'], label='HX1 Secondary Inlet')
+    ax[0, 1].plot(time, system_diagnostics['hx1_cold_out'], label='HX1 Secondary Outlet')
+    ax[0, 1].plot(time, system_diagnostics['hx2_hot_out'], label='HX2 Secondary Return')
+    ax[0, 1].legend()
+    ax[0, 1].set_title('Secondary Loop Temperatures')
+
+    ax[1, 0].plot(time, system_diagnostics['hx2_cold_in'], label='HX2 Brayton Inlet')
+    ax[1, 0].plot(time, system_diagnostics['hx2_cold_out'], label='HX2 Brayton Outlet')
+    ax[1, 0].plot(time, system_diagnostics['brayton_T2r'], label='Brayton Return')
+    ax[1, 0].legend()
+    ax[1, 0].set_title('Tertiary Loop Temperatures')
+
+    ax[1, 1].plot(time, temperature_fuel_middle_matrix, label='Fuel Midplane')
+    ax[1, 1].plot(time, temperature_graphite_middle_matrix, label='Graphite Midplane')
+    ax[1, 1].plot(time, total_power_matrix, label='Core Power')
+    ax[1, 1].legend()
+    ax[1, 1].set_title('Core Midplane Response')
+
+    plt.tight_layout()
+    plt.savefig(f'{plot_dir}/system_loop_response.png')
+    plt.close(fig)
+
+    fig, ax = plt.subplots(2, 2, figsize=(15, 8))
+    ax[0, 0].plot(time, system_diagnostics['brayton_T1'], label='T1')
+    ax[0, 0].plot(time, system_diagnostics['brayton_T2'], label='T2')
+    ax[0, 0].plot(time, system_diagnostics['brayton_T2r'], label='T2r')
+    ax[0, 0].legend()
+    ax[0, 0].set_title('Compressor and Recuperator')
+
+    ax[0, 1].plot(time, system_diagnostics['brayton_T3'], label='T3')
+    ax[0, 1].plot(time, system_diagnostics['brayton_T4'], label='T4')
+    ax[0, 1].plot(time, system_diagnostics['brayton_T4r'], label='T4r')
+    ax[0, 1].legend()
+    ax[0, 1].set_title('Turbine Side Temperatures')
+
+    ax[1, 0].plot(time, system_diagnostics['brayton_W_c'], label='Compressor Work')
+    ax[1, 0].plot(time, system_diagnostics['brayton_W_t'], label='Turbine Work')
+    ax[1, 0].plot(time, system_diagnostics['brayton_W_net'], label='Net Work')
+    ax[1, 0].legend()
+    ax[1, 0].set_title('Brayton Work Balance')
+
+    ax[1, 1].plot(time, system_diagnostics['brayton_Q_in'], label='Q_in')
+    ax[1, 1].plot(time, system_diagnostics['brayton_Q_out'], label='Q_out')
+    ax[1, 1].plot(time, system_diagnostics['brayton_eta'], label='Efficiency')
+    ax[1, 1].legend()
+    ax[1, 1].set_title('Brayton Heat Balance')
+
+    plt.tight_layout()
+    plt.savefig(f'{plot_dir}/brayton_diagnostics.png')
+    plt.close(fig)
+
 def save_specific_data(data, index):
     print(f'Saving specific data for simulation {index}')
     os.makedirs('simulation_results', exist_ok=True)
     data_file = f'simulation_results/specific_data_{index}.npz'
     np.savez(data_file, data=data)
+
+def save_system_diagnostics(system_diagnostics, index):
+    os.makedirs('simulation_results', exist_ok=True)
+    np.savez(f'simulation_results/system_diagnostics_{index}.npz', **system_diagnostics)
 
 def main():
     run_simulation(generate_parameters(), 0)

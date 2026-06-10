@@ -1,79 +1,77 @@
 import numpy as np
-from scipy.integrate import solve_ivp
-from scipy.sparse.linalg import spsolve
-from scipy.sparse import csc_matrix
 
-from parameters import *
 from ode_solver import ode_solver
 
-def thermal_hydraulics(y_th, q_prime, Ts_core_0, params, step):
-    Vc = params['Vc']
-    U_sg = params['U_sg']
-    U_gs = params['U_gs']
-    Ms = params['Ms']
-    Mg = params['Mg']
-    c_p_s = params['c_p_s']
-    c_p_g = params['c_p_g']
-    L = params['L']
-    gamma = params['gamma']
-    N = params['N']
-    dz = params['dz']
-    bc_s0 = params['bc_s0']
-    bc_sL = params['bc_sL']
-    bc_g0 = params['bc_g0']
-    bc_gL = params['bc_gL']
-    initialS = params['initialS']
-    initialG = params['initialG']
-    err=params['err']
-    
-    # parameters transformation
-    a_th = Vc
-    b_th = U_gs / (Ms * c_p_s)
-    d_th = L * gamma / (Ms * c_p_s)
-    c_th = U_sg / (Mg * c_p_g)
-    e_th = L * (1 - gamma) / (Mg * c_p_g)
 
-    AT_sparse = params.get('AT_sparse')
-    if AT_sparse is None:
-        AT = np.diag(-2 * np.ones(N)) + np.diag(np.ones(N - 1), 1) + np.diag(np.ones(N - 1), -1)
-        AT[0, 0] = AT[-1, -1] = 1
-        AT[0, 1] = AT[-1, -2] = 0
-        AT_sparse = csc_matrix(AT) / dz**2
+def _salt_upwind_gradient(temperature_fuel, inlet_temperature, dz):
+    temp_im1 = np.empty_like(temperature_fuel)
+    temp_im1[0] = inlet_temperature
+    temp_im1[1:] = temperature_fuel[:-1]
+    return (temperature_fuel - temp_im1) / dz
 
-    # print(y_th.shape)
-    y_th[0] = Ts_core_0
-    
+
+def _neumann_second_derivative(field, dz):
+    second_derivative = np.empty_like(field)
+    if field.size == 1:
+        second_derivative[0] = 0.0
+        return second_derivative
+
+    second_derivative[1:-1] = (field[2:] - 2.0 * field[1:-1] + field[:-2]) / dz**2
+    second_derivative[0] = 2.0 * (field[1] - field[0]) / dz**2
+    second_derivative[-1] = 2.0 * (field[-2] - field[-1]) / dz**2
+    return second_derivative
+
+
+def thermal_hydraulics(y_th, q_prime, Ts_core_inlet, params, step):
+    N = params["N"]
+    dz = params["dz"]
+
+    rho_s = float(params["rho_s"])
+    c_p_s = float(params["c_p_s"])
+    A_s = float(params["A_s"])
+    rho_gr = float(params["rho_gr"])
+    c_p_g = float(params["c_p_g"])
+    A_gr = float(params["A_gr"])
+    u_c = float(params["u_core"])
+    eta_s = float(params["eta_s"])
+    eta_gr = float(params["eta_gr"])
+    heat_exchange = float(params["h_sgr"]) * float(params["P_sgr"])
+    graphite_axial_conductivity = float(params["k_gr"]) * A_gr
+    use_graphite_axial_conduction = bool(params.get("use_graphite_axial_conduction", True))
+    initialS = np.asarray(params["initialS"], dtype=float)
+    initialG = np.asarray(params["initialG"], dtype=float)
+    err = float(params["err"])
+
+    salt_capacity = rho_s * c_p_s * A_s
+    graphite_capacity = rho_gr * c_p_g * A_gr
+    q_prime = np.asarray(q_prime, dtype=float)
+    inlet_temperature = float(params["bc_s0"] if Ts_core_inlet is None else Ts_core_inlet)
+
     def pde_to_ode_th(t, y):
-        # print("testThermal")
         temperature_fuel = y[:N]
         temperature_graphite = y[N:]
-        temperature_fuel_dt = a_th * (AT_sparse @ temperature_fuel) + b_th * (temperature_graphite-temperature_fuel)+d_th*q_prime.T + err
-        temperature_graphite_dt = c_th * (temperature_fuel-temperature_graphite) + e_th * q_prime.T + err
-        # print(f'd_th: {d_th*q_prime.T}')
-        # print(f'e_th: {d_th*q_prime.T}')
-        # Apply time-varying boundary conditions
-        temperature_fuel_dt[0] = bc_s0 - temperature_fuel[0]
-        temperature_fuel_dt[-1] = bc_sL - temperature_fuel[-1]
-        temperature_graphite_dt[0] = bc_g0 - temperature_graphite[0]
-        temperature_graphite_dt[-1] = bc_gL - temperature_graphite[-1]
-        # Combine the derivatives
-        dydt = np.concatenate([temperature_fuel_dt, temperature_graphite_dt])
-        # print(y.shape)
-        # print(temperature_fuel.shape)
-        # print(temperature_graphite.shape)
-        return dydt
-    
-    # Initial condition vector
-    if step==0:
-        # print("test3")
+
+        fuel_gradient = _salt_upwind_gradient(temperature_fuel, inlet_temperature, dz)
+        fuel_exchange = heat_exchange * (temperature_graphite - temperature_fuel)
+        fuel_rhs = -u_c * fuel_gradient + (eta_s * q_prime + fuel_exchange) / salt_capacity + err
+
+        graphite_exchange = -heat_exchange * (temperature_graphite - temperature_fuel)
+        graphite_rhs = (eta_gr * q_prime + graphite_exchange) / graphite_capacity + err
+        if use_graphite_axial_conduction:
+            graphite_rhs += (
+                graphite_axial_conductivity / graphite_capacity
+            ) * _neumann_second_derivative(temperature_graphite, dz)
+
+        # Enforce the prescribed salt inlet temperature directly.
+        fuel_rhs[0] = inlet_temperature - temperature_fuel[0]
+
+        return np.concatenate([fuel_rhs, graphite_rhs])
+
+    if step == 0:
         y0 = np.concatenate([initialS, initialG])
     else:
-        y0 = y_th[:,-1]
-    # print("y0shape: "+str(y0.shape))
-    
-    bc=[]
-    y_th = ode_solver(y0, bc, pde_to_ode_th, params)
+        y0 = np.asarray(y_th[:, -1], dtype=float)
 
-    # print(y_th.shape)
-
-    return y_th
+    y0[0] = inlet_temperature
+    solution_y_th = ode_solver(y0, [], pde_to_ode_th, params)
+    return solution_y_th.y

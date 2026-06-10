@@ -1,77 +1,14 @@
-from parameters import *
-from ode_solver import ode_solver
-from scipy.sparse import csc_matrix
+from heat_exchanger import solve_heat_exchanger
 
 def HX2(y_hx2, Ts_HX2_L, Tss_HX2_0, params, step):
-    
-    V_he2_s = params['V_he2_s']
-    U2_hx = params['U2_hx']
-    M_he2_s = params['M_he2_s']
-    c_p_ss = params['c_p_ss']
-    V_he2_ss = params['V_he2_ss']
-    U2_hx = params['U2_hx']
-    M_he2_ss = params['M_he2_ss']
-    c_p_sss = params['c_p_sss']
-    Nx = params['Nx']
-    dx = params['dx']
-    u2_L = params['u2_L']
-    u2_H = params['u2_H']
-    v2_L = params['v2_L']
-    v2_H = params['v2_H']
-    err = params['err']
-    u2_init = params['u2_init']
-    v2_init = params['v2_init']
-    
-    # New Form Parameters
-    C1 = V_he2_s
-    C2 = -U2_hx / (M_he2_s * c_p_ss)
-    C3 = V_he2_ss
-    C4 = U2_hx / (M_he2_ss * c_p_sss)
+    config = {
+        "dx": params["L_HX2"] / max(params["Nx"] - 1, 1),
+        "hot_velocity": -params["V_he2_s"],
+        "cold_velocity": params["V_he2_ss"],
+        "hot_exchange_coeff": params["U2_hx"] / (params["M_he2_s"] * params["c_p_ss"]),
+        "cold_exchange_coeff": params["U2_hx"] / (params["M_he2_ss"] * params["c_p_sss"]),
+        "hot_initial": params["u2_init"],
+        "cold_initial": params["v2_init"],
+    }
 
-    # Discretize the spatial domain
-    # A_HX2=np.diag(-np.ones(Nx))+ np.diag(np.ones(Nx-1), 1) / dx
-    # # A_HX2 = (-2*np.diag(np.ones(Nx)) + np.diag(np.ones(Nx - 1), 1) + np.diag(np.ones(Nx - 1), -1)) / dx
-    # A_HX2[0, 0] = 1 / dx
-    # A_HX2[-1, -1] = 1 / dx
-
-    A_HX2_sparse = params.get('A_HX2_sparse')
-    if A_HX2_sparse is None:
-        A_HX2 = np.diag(-2 * np.ones(Nx)) + np.diag(np.ones(Nx - 1), 1) + np.diag(np.ones(Nx - 1), -1)
-        A_HX2[0, 0] = A_HX2[-1, -1] = -1
-        A_HX2[0, 1] = A_HX2[-1, -2] = 0
-        A_HX2_sparse = csc_matrix(A_HX2) / dx**2
-    
-    y_hx2[:Nx,-1]=Ts_HX2_L
-    y_hx2[Nx:,0]=Tss_HX2_0
-    
-    # y is a vector with u and v concatenated
-    def pde_to_ode_hx2(t,y):
-        u=y[:Nx]
-        v=y[Nx:]
-        
-        du_dt = C1 * (A_HX2_sparse @ u) + C2 * (u - v) + err
-        dv_dt = C3 * (A_HX2_sparse @ v) + C4 * (u - v) + err
-        
-        # Apply time-varying boundary conditions
-        du_dt[0] = u2_L - u[0] / dx
-        du_dt[-1] = u2_H - u[-1] / dx
-        dv_dt[0] = v2_L - v[0] / dx
-        dv_dt[-1] = v2_H - v[-1] / dx
-        
-        dydt = np.concatenate([du_dt, dv_dt])
-        return dydt
-    
-    # Initial condition vector
-    if step==0:
-        y0 = np.concatenate([u2_init, v2_init])
-    else:
-        y0 = y_hx2[:,-1]
-        
-    # solution_y_hx1 = solve_ivp(pde_to_ode_hx1, (step, step+1), y0, t_eval=t, method='RK45')     
-    bc=[]
-    y_hx2 = ode_solver(y0, bc, pde_to_ode_hx2, params)
-    
-    # y_hx1 is a vector at time step+1
-    # print("testHX1")
-    # print(y_hx1.shape)
-    return y_hx2
+    return solve_heat_exchanger(y_hx2, Ts_HX2_L, Tss_HX2_0, config, params, step)

@@ -1,159 +1,1144 @@
 \documentclass[a4paper,12pt]{article}
-\usepackage{graphicx} % For including images
-\usepackage{amsmath}  % For math symbols
-\usepackage{hyperref} % For hyperlinks
-\usepackage{geometry} % For setting page dimensions
-\geometry{margin=1in} % Set margins to 1 inch
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\geometry{margin=1in}
 
-\title{1D MSRE Modelling}
+\title{Revised One-Dimensional Flowing-Fuel MSRE--BC Model}
 \author{Yuyao}
-% \author{Your Name \\ Department Name \\ University Name}
 \date{\today}
 
 \begin{document}
 
 \maketitle
 
-% \section*{Objective}
-% Briefly state the objective of the experiment or the purpose of the lab.
+\section*{Revised Governing Equations}
 
-\section*{System components}
-% Provide some background on the topic of the experiment. Mention key theories, principles, or equations that are relevant.
-\begin{itemize}
-    \item Core - Neutronics and Thermal-hydraulics
-    \item Heat exchanger 1 and 2
-    \item Transfer delay
-    \item Feedback - Reactivity
-\end{itemize}
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.7\textwidth]{MSRE.png}
-    \caption{MSRE}
-    \label{fig:MSRE}
-\end{figure}
-\section*{Equations}
-\subsection{Neutronics}
+\subsection{Corrected 1D Flowing-Fuel MSRE--BC Model}
+
+The axial coordinate is denoted by $z \in [0,H]$, where $H$ is the
+active-core height. The two neutron energy groups are indexed by
+$g = 1,2$, corresponding to the fast and thermal groups, respectively.
+The six delayed neutron precursor groups are indexed by
+$i = 1,\ldots,6$. The fuel salt flows in the positive $z$-direction
+with velocity $u_c$.
+
+The total fission neutron production rate is defined as
 \begin{equation}
-    % \label{eq:example}
-    \frac{1}{V} \frac{\partial \phi(x,t)}{\partial t} = D \frac{\partial^2 \phi(x,t)}{\partial x^2} + \left(-\Sigma_a + \frac{(1 - \beta)\nu\Sigma_f}{K_eff}\right)\phi(x,t) + \sum_{i = 1}^{6}{\lambda_i c_i(x,t)}
+F(z,t)
+=
+\sum_{g=1}^{2}
+\nu_g \Sigma_{f,g}(z,t)\phi_g(z,t),
+\label{eq:fission_source}
 \end{equation}
+where $\phi_g$ is the group-$g$ neutron flux,
+$\nu_g$ is the average number of neutrons per fission, and
+$\Sigma_{f,g}$ is the macroscopic fission cross section.
+
+The total delayed neutron fraction is
 \begin{equation}
-    \frac{\partial c_i(x,t)}{\partial t} = \beta \nu \Sigma_f \phi(x,t) - \lambda_i c_i(x,t)
-\end{equation}
-\begin{equation}
-    K_{eff}= \frac{1}{1-\rho}
-\end{equation}
-\subsection{Thermal-hydraulics}
-\begin{equation}
-    q'(x,t) = \frac{\phi(x,t) \Sigma_f V}{3.12 \times 10^{10} \, \frac{\text{fissions}}{\text{watt-sec}}}
-\end{equation}
-\begin{equation}
-    \frac{\partial T_s(x,t)}{\partial t} + v_c \frac{\partial T_s(x,t)}{\partial x} = \frac{H}{M_s c_{p,s}} \left( \gamma q'(x,t) + \frac{U}{H} \left( T_g(x,t) - T_s(x,t) \right) \right)
-\end{equation}
-\begin{equation}
-    \frac{\partial T_g(x,t)}{\partial t} = \frac{H}{M_g c_{p,g}} \left( (1 - \gamma) q'(x,t) - \frac{U}{H} \left( T_g(x,t) - T_s(x,t) \right) \right)
+\beta = \sum_{i=1}^{6}\beta_i.
+\label{eq:beta_total}
 \end{equation}
 
-\subsection{Reactivity feedback}
+Prompt and delayed neutrons are taken to be born in the fast group,
+consistent with the present two-group thermal-reactor approximation:
 \begin{equation}
-    \rho(t) = \rho_0 + \rho_{fb}(t) + \rho_{insertion}(t)
+\boldsymbol{\chi}_p=
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix},
+\qquad
+\boldsymbol{\chi}_d=
+\begin{bmatrix}
+1\\
+0
+\end{bmatrix}.
+\label{eq:chi_definition}
 \end{equation}
+
+The group-removal cross sections are defined as
 \begin{equation}
-    \rho_0 = \beta - \sum_{i=1}^{6} \frac{\beta_i}{\left( 1 + \frac{1}{\lambda_i \tau_C} \left[ 1 - e^{-\lambda_i \tau_L} \right] \right)}
+\Sigma_{r,g}(z,t)
+=
+\Sigma_{a,g}(z,t)
++
+\sum_{\substack{h=1\\h\neq g}}^{2}
+\Sigma_{s,g\rightarrow h}(z,t)
++
+D_g(z,t)B_{r,g}^{2}(z),
+\label{eq:removal_general}
 \end{equation}
+where $D_g$ is the diffusion coefficient, $\Sigma_{a,g}$ is the
+absorption cross section, $\Sigma_{s,g\rightarrow h}$ is the scattering
+cross section from group $g$ to group $h$, and $B_{r,g}^{2}$ denotes an
+optional transverse-leakage correction. In the absence of transverse
+leakage, $B_{r,g}=0$.
+
+In the present two-group formulation, thermal-to-fast up-scattering is
+neglected:
 \begin{equation}
-    \rho_{fb}(t) = \alpha_f \left[ T_f(x,0) - T_f(x,t) \right] + \alpha_g \left[ T_g(x,0) - T_g(x,t) \right]
+\Sigma_{s,2\rightarrow 1}(z,t)=0.
+\label{eq:no_upscatter}
 \end{equation}
 
-\subsection{Heat exchanger 1 and 2}
+The corrected two-group time-dependent diffusion equations are
 \begin{equation}
-    \frac{\partial T_s^{h.e.}(z, t)}{\partial t} + v_s^{h.e.} \frac{\partial T_s^{h.e.}(z, t)}{\partial z} = \frac{U^{h.e.}}{M_s^{h.e.} \cdot c_{p,s}} \left( T_s^{h.e.}(z, t) - T_{ss}(z, t) \right)
+\frac{1}{v_1}
+\frac{\partial \phi_1}{\partial t}
+=
+\frac{\partial}{\partial z}
+\left[
+D_1(z,t)
+\frac{\partial \phi_1}{\partial z}
+\right]
+-
+\Sigma_{r,1}(z,t)\phi_1
++
+\chi_{p,1}(1-\beta)F
++
+\chi_{d,1}
+\sum_{i=1}^{6}\lambda_i C_i,
+\label{eq:fast_group}
 \end{equation}
+
 \begin{equation}
-    \frac{\partial T_{ss}(z, t)}{\partial t} + v_{ss}^{h.e.} \frac{\partial T_{ss}(z, t)}{\partial z} = \frac{U^{h.e.}}{M_{ss}^{h.e.} \cdot c_{p,ss}} \left( T_s^{h.e.}(z, t) - T_{ss}(z, t) \right)
+\frac{1}{v_2}
+\frac{\partial \phi_2}{\partial t}
+=
+\frac{\partial}{\partial z}
+\left[
+D_2(z,t)
+\frac{\partial \phi_2}{\partial z}
+\right]
+-
+\Sigma_{r,2}(z,t)\phi_2
++
+\Sigma_{s,1\rightarrow 2}(z,t)\phi_1
++
+\chi_{p,2}(1-\beta)F
++
+\chi_{d,2}
+\sum_{i=1}^{6}\lambda_i C_i,
+\label{eq:thermal_group}
 \end{equation}
-Equations for heat exchanger 2 is similar to that for heat exchanger 1.
 
-    
-% \begin{itemize}
-%     \item List of materials used.
-%     \item List of equipment.
-% \end{itemize}
-% Describe the experimental setup and the steps followed. You can include diagrams if necessary.
+Substitution of Eq.~\eqref{eq:chi_definition} into
+Eqs.~\eqref{eq:fast_group}--\eqref{eq:thermal_group} yields
+\begin{equation}
+\frac{1}{v_1}
+\frac{\partial \phi_1}{\partial t}
+=
+\frac{\partial}{\partial z}
+\left[
+D_1
+\frac{\partial \phi_1}{\partial z}
+\right]
+-
+\Sigma_{r,1}\phi_1
++
+(1-\beta)F
++
+\sum_{i=1}^{6}\lambda_i C_i,
+\label{eq:fast_group_reduced}
+\end{equation}
 
-\section*{Methods}
-% Outline the procedure step by step. Number the steps for clarity.
-In a time loop:
-\begin{itemize}
-    \item $dvalue\_dt$: discrete the space into grid points (By multiplying a matrix)
-    \item $updated\_value$: solve the time domain differential equations ($solve\_ivp$: explicit method like $RK23$ is fast but not stable, implicit method like Radau can be stable but slow)
-    \item passing the updated value to the next function
-\end{itemize}
+\begin{equation}
+\frac{1}{v_2}
+\frac{\partial \phi_2}{\partial t}
+=
+\frac{\partial}{\partial z}
+\left[
+D_2
+\frac{\partial \phi_2}{\partial z}
+\right]
+-
+\Sigma_{r,2}\phi_2
++
+\Sigma_{s,1\rightarrow 2}\phi_1.
+\label{eq:thermal_group_reduced}
+\end{equation}
 
-\section*{Results}
-When the system is stable, reactivity should be 0 ($K_{eff}=1$), and the neutron flux and DN precursors should be stable. \\
-To get results faster, they are solved by $RK23$, but the results are generally similar to the implicit method, except for some oscillations. \\
-% With no insertion added: \\
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.9\textwidth]{neutron_flux_without_insertion.png}
-    \caption{No insertion}
-    \label{fig:neutron_flux_without_insertion}
-\end{figure}
-% With insertion at time=25000: \\
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.9\textwidth]{neutron_flux_and_precursors.png}
-    \caption{50 pcm reactivity insertion at time=25000}
-    \label{fig:neutron_flux_and_precursors}
-\end{figure}
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.5\textwidth]{precursors_with_time_middle.png}
-    \caption{precursor with time middle (with insertion at time=25000)}
-    \label{fig:precursor_with_time_middle}
-\end{figure}
-% \begin{figure}[h!]
-%     \centering
-%     \includegraphics[width=1\textwidth]{temperature_in_heat_exchangers.png}
-%     \caption{temperature in heat exchangers}
-%     \label{fig:temperature_in_heat_exchangers}
-% \end{figure}
-% Include the data you collected in the lab. You can use tables or figures to present the results clearly.
+For a flowing-fuel MSR, the delayed-neutron precursor balance includes
+axial transport by the circulating fuel salt:
+\begin{equation}
+\frac{\partial C_i(z,t)}{\partial t}
++
+u_c
+\frac{\partial C_i(z,t)}{\partial z}
+=
+\beta_i F(z,t)
+-
+\lambda_i C_i(z,t),
+\qquad
+i=1,\ldots,6.
+\label{eq:precursor_core}
+\end{equation}
 
-% \begin{table}[h!]
-%     \centering
-%     \begin{tabular}{|c|c|c|}
-%         \hline
-%         Quantity & Measurement & Unit \\
-%         \hline
-%         Example 1 & 10 & m \\
-%         Example 2 & 20 & s \\
-%         \hline
-%     \end{tabular}
-%     \caption{Example of Data Table}
-%     \label{tab:results}
-% \end{table}
+When group-dependent delayed fractions are retained, the precursor source
+term in Eq.~\eqref{eq:precursor_core} becomes
+\begin{equation}
+\beta_i F(z,t)
+\quad \longrightarrow \quad
+\sum_{g=1}^{2}
+\beta_{i,g}\nu_g\Sigma_{f,g}(z,t)\phi_g(z,t).
+\label{eq:group_dependent_beta}
+\end{equation}
 
-\section*{Problems to fix}
-\begin{itemize}
-    \item The model is too sensitive to some parameters, which makes the model too sensitive to reactivity
-    \item A very small reactivity insertion can cause the model to diverge, which makes rod control impossible
-    \item The temperature of graphite should be a little higher than the fuel salt, but the model always shows the identical temperature of graphite and fuel salt
-\end{itemize}
-Possible solutions:
-\begin{itemize}
-    \item Continue trying modifying parameters 
-    \item The reactivity model may be not accurate (very few articles I can find about 1D reactivity feedback model, and the equation I'm using now comes from a 0D model, and I just expanded it to vector directly)
-    \item The automatic converter from python to c++ may cause some problems, as Yulin suggested, I should all use pointers to pass values to let FPGA smoothly run the model in the further work, but automatic converters usually use values to pass values
-    \item I plan to convert the model to c++ after the model is well tested in python including the rode insertion control part, as c++ is not easy to debug
-\end{itemize}
-% Discuss the results you obtained. Were the results as expected? What errors might have occurred? How could the experiment be improved?
+\subsubsection{External-Loop Delayed-Neutron Precursor Recirculation}
 
-% \section*{Conclusion}
-% Summarize the key findings of the experiment. Did you meet the objectives? 
+Delayed-neutron precursor transport outside the active core is represented
+by an external-loop coordinate $s \in [0,L_\ell]$, where $s=0$
+corresponds to the core outlet and $s=L_\ell$ corresponds to the core
+inlet after external-loop circulation. The external-loop precursor
+concentration is denoted by $C_i^\ell(s,t)$. In the absence of a fission
+source in the external loop, the precursor balance is
+\begin{equation}
+\frac{\partial C_i^\ell(s,t)}{\partial t}
++
+u_\ell
+\frac{\partial C_i^\ell(s,t)}{\partial s}
+=
+-
+\lambda_i C_i^\ell(s,t),
+\qquad
+i=1,\ldots,6.
+\label{eq:precursor_loop}
+\end{equation}
 
-% \section*{References}
-% List any sources, textbooks, or articles that were referenced in the lab report.
+The core and external loop are coupled through
+\begin{equation}
+C_i^\ell(0,t)=C_i(H,t),
+\label{eq:precursor_loop_bc_outlet}
+\end{equation}
+
+\begin{equation}
+C_i(0,t)=C_i^\ell(L_\ell,t).
+\label{eq:precursor_loop_bc_inlet}
+\end{equation}
+
+Under the plug-flow approximation for the external loop,
+Eqs.~\eqref{eq:precursor_loop}--\eqref{eq:precursor_loop_bc_inlet}
+reduce to the delayed inlet boundary condition
+\begin{equation}
+C_i(0,t)
+=
+C_i(H,t-\tau_\ell)
+\exp(-\lambda_i \tau_\ell),
+\qquad
+\tau_\ell=\frac{L_\ell}{u_\ell}.
+\label{eq:precursor_delay_bc}
+\end{equation}
+
+When mixing or dilution in the external loop is represented through a
+transport efficiency factor $\eta_\ell$, Eq.~\eqref{eq:precursor_delay_bc}
+becomes
+\begin{equation}
+C_i(0,t)
+=
+\eta_\ell
+C_i(H,t-\tau_\ell)
+\exp(-\lambda_i \tau_\ell),
+\qquad
+0<\eta_\ell\leq 1.
+\label{eq:precursor_delay_bc_eta}
+\end{equation}
+
+\subsubsection{Temperature-Dependent Cross-Section Feedback}
+
+In the revised formulation, temperature feedback enters through
+temperature-dependent two-group macroscopic cross sections; local
+$k_{\mathrm{eff}}(z,t)$ and local reactivity $\rho(z,t)$ are not
+introduced into the transient diffusion equations.
+
+For a generic neutronic coefficient
+\[
+X
+\in
+\left\{
+D_g,\,
+\Sigma_{a,g},\,
+\Sigma_{s,1\rightarrow 2},\,
+\nu_g\Sigma_{f,g}
+\right\},
+\]
+the following first-order representation is adopted:
+\begin{equation}
+X(z,t)
+=
+X^{0}(z)
++
+a_{X}^{s}(z)\Delta T_s(z,t)
++
+a_{X}^{\mathrm{gr}}(z)\Delta T_{\mathrm{gr}}(z,t)
++
+\Delta X_{\mathrm{rod}}(z,t),
+\label{eq:generic_xs_feedback}
+\end{equation}
+where
+\begin{equation}
+\Delta T_s(z,t)
+=
+T_s(z,t)-T_s^{0}(z),
+\qquad
+\Delta T_{\mathrm{gr}}(z,t)
+=
+T_{\mathrm{gr}}(z,t)-T_{\mathrm{gr}}^{0}(z).
+\label{eq:temperature_perturbations}
+\end{equation}
+
+Accordingly,
+\begin{equation}
+\Sigma_{a,g}(z,t)
+=
+\Sigma_{a,g}^{0}(z)
++
+a_{a,g}^{s}(z)\Delta T_s(z,t)
++
+a_{a,g}^{\mathrm{gr}}(z)\Delta T_{\mathrm{gr}}(z,t)
++
+\Delta\Sigma_{a,g}^{\mathrm{rod}}(z,t),
+\label{eq:absorption_feedback}
+\end{equation}
+
+\begin{equation}
+\Sigma_{s,1\rightarrow 2}(z,t)
+=
+\Sigma_{s,1\rightarrow 2}^{0}(z)
++
+a_{s,12}^{s}(z)\Delta T_s(z,t)
++
+a_{s,12}^{\mathrm{gr}}(z)\Delta T_{\mathrm{gr}}(z,t).
+\label{eq:scattering_feedback}
+\end{equation}
+
+\begin{equation}
+\nu_g\Sigma_{f,g}(z,t)
+=
+\left(\nu_g\Sigma_{f,g}\right)^{0}(z)
++
+a_{f,g}^{s}(z)\Delta T_s(z,t)
++
+a_{f,g}^{\mathrm{gr}}(z)\Delta T_{\mathrm{gr}}(z,t).
+\label{eq:fission_feedback}
+\end{equation}
+
+\begin{equation}
+D_g(z,t)
+=
+D_g^{0}(z)
++
+a_{D,g}^{s}(z)\Delta T_s(z,t)
++
+a_{D,g}^{\mathrm{gr}}(z)\Delta T_{\mathrm{gr}}(z,t).
+\label{eq:diffusion_feedback}
+\end{equation}
+
+The rod-induced perturbation is restricted to the absorption cross
+sections:
+\begin{equation}
+\Delta X_{\mathrm{rod}}(z,t)=0
+\quad
+\text{for}
+\quad
+X\notin
+\left\{
+\Sigma_{a,1},\Sigma_{a,2}
+\right\}.
+\label{eq:rod_only_absorption}
+\end{equation}
+
+The temperature derivatives are evaluated from cross-section libraries or
+lattice calculations by centered finite differences:
+\begin{equation}
+a_{X}^{s}(z)
+=
+\frac{
+X(z,T_s^{0}+\Delta T,T_{\mathrm{gr}}^{0})
+-
+X(z,T_s^{0}-\Delta T,T_{\mathrm{gr}}^{0})
+}
+{2\Delta T},
+\label{eq:xs_derivative_salt}
+\end{equation}
+
+\begin{equation}
+a_{X}^{\mathrm{gr}}(z)
+=
+\frac{
+X(z,T_s^{0},T_{\mathrm{gr}}^{0}+\Delta T)
+-
+X(z,T_s^{0},T_{\mathrm{gr}}^{0}-\Delta T)
+}
+{2\Delta T}.
+\label{eq:xs_derivative_graphite}
+\end{equation}
+
+For an axial model comprising multiple homogenized regions, the reference
+coefficients become region dependent:
+\begin{equation}
+X^{0}(z)
+=
+\sum_{r}
+X_{r}^{0}\mathbf{1}_{\Omega_r}(z),
+\qquad
+[0,H]=\bigcup_r \Omega_r,
+\label{eq:region_dependent_xs}
+\end{equation}
+where $\Omega_r$ denotes the lower plenum, active core, upper plenum, or
+other homogenized axial regions.
+
+\subsubsection{Equivalent Rod-Worth Cross-Section Perturbation}
+
+Explicit mechanical control-rod motion is not represented in the present
+formulation. Instead, a prescribed rod-worth signal is recast as an
+equivalent perturbation to the macroscopic absorption cross section.
+
+Let $A_{\mathrm{rod}}(t)$ denote the scalar amplitude associated with the
+imposed rod action, and let $S_{\mathrm{rod},g}(z)$ denote the prescribed
+axial rod-worth shape in energy group $g$. The equivalent absorption
+perturbation is written as
+\begin{equation}
+\Delta\Sigma_{a,g}^{\mathrm{rod}}(z,t)
+=
+A_{\mathrm{rod}}(t)S_{\mathrm{rod},g}(z),
+\qquad
+g=1,2.
+\label{eq:rod_absorption_perturbation}
+\end{equation}
+
+The associated first-order rod reactivity worth is retained only as a
+global diagnostic quantity:
+\begin{equation}
+\rho_{\mathrm{rod}}(t)
+\approx
+-
+\frac{
+\displaystyle
+\sum_{g=1}^{2}
+\int_{0}^{H}
+\phi_{0,g}^{\dagger}(z)
+\Delta\Sigma_{a,g}^{\mathrm{rod}}(z,t)
+\phi_{0,g}(z)\,dz
+}
+{
+\displaystyle
+\left\langle
+\boldsymbol{\phi}_{0}^{\dagger},
+\mathcal{F}_{0}\boldsymbol{\phi}_{0}
+\right\rangle
+}.
+\label{eq:rod_worth}
+\end{equation}
+
+When the transient forcing is specified in terms of an externally imposed
+scalar reactivity $\rho_{\mathrm{ext}}(t)$, the corresponding amplitude is
+obtained through the following adjoint-weighted normalization.
+
+\noindent\textbf{Step 1.}
+Introduce the reference-state fission-production normalization and the
+adjoint-weighted importance of the prescribed rod shape:
+\[
+N_0
+=
+\left\langle
+\boldsymbol{\phi}_{0}^{\dagger},
+\mathcal{F}_{0}\boldsymbol{\phi}_{0}
+\right\rangle,
+\]
+\[
+W_{\mathrm{rod}}
+=
+\sum_{h=1}^{2}
+\int_{0}^{H}
+\phi_{0,h}^{\dagger}(z)
+S_{\mathrm{rod},h}(z)
+\phi_{0,h}(z)\,dz.
+\]
+The rod amplitude is then defined by
+\[
+A_{\mathrm{rod}}(t)
+=
+-
+\rho_{\mathrm{ext}}(t)
+\frac{N_0}{W_{\mathrm{rod}}}.
+\]
+
+\noindent\textbf{Step 2.}
+The local absorption perturbation is subsequently reconstructed as
+\begin{equation}
+\Delta\Sigma_{a,g}^{\mathrm{rod}}(z,t)
+=
+A_{\mathrm{rod}}(t)S_{\mathrm{rod},g}(z),
+\qquad
+g=1,2.
+\label{eq:rho_to_absorption}
+\end{equation}
+
+With this sign convention, $\rho_{\mathrm{ext}}(t)<0$ corresponds to rod
+insertion and therefore yields a positive absorption perturbation.
+
+\subsubsection{Global Reactivity Diagnostic}
+
+The effective multiplication factor and reactivity are treated only as
+global reactor quantities. They are not used as local state variables in the
+time-dependent diffusion equations.
+
+At a given temperature and rod configuration, the instantaneous global
+eigenvalue problem is
+\begin{equation}
+\mathcal{A}
+\left[
+T_s,T_{\mathrm{gr}},\Delta\Sigma_{a}^{\mathrm{rod}}
+\right]
+\boldsymbol{\Phi}
+=
+\frac{1}{k(t)}
+\mathcal{F}
+\left[
+T_s,T_{\mathrm{gr}}
+\right]
+\boldsymbol{\Phi},
+\label{eq:global_eigenvalue}
+\end{equation}
+where $\boldsymbol{\Phi}=[\Phi_1,\Phi_2]^T$. The global reactivity is
+\begin{equation}
+\rho(t)=\frac{k(t)-1}{k(t)}.
+\label{eq:global_reactivity}
+\end{equation}
+
+The loss operator is defined by
+\begin{equation}
+\left[
+\mathcal{A}\boldsymbol{\Phi}
+\right]_g
+=
+-
+\frac{\partial}{\partial z}
+\left[
+D_g(z)
+\frac{\partial \Phi_g}{\partial z}
+\right]
++
+\Sigma_{r,g}(z)\Phi_g
+-
+\sum_{\substack{h=1\\h\neq g}}^{2}
+\Sigma_{s,h\rightarrow g}(z)\Phi_h,
+\label{eq:loss_operator}
+\end{equation}
+and the fission production operator is
+\begin{equation}
+\left[
+\mathcal{F}\boldsymbol{\Phi}
+\right]_g
+=
+\chi_{p,g}
+\sum_{h=1}^{2}
+\nu_h\Sigma_{f,h}(z)\Phi_h.
+\label{eq:fission_operator}
+\end{equation}
+
+When a full eigenvalue solution at every time step is unnecessary, the
+global reactivity change may be estimated to first order as
+\begin{equation}
+\Delta\rho(t)
+\approx
+\frac{
+\left\langle
+\boldsymbol{\phi}_{0}^{\dagger},
+\left[
+\Delta\mathcal{F}(t)
+-
+\Delta\mathcal{A}(t)
+\right]
+\boldsymbol{\phi}_{0}
+\right\rangle
+}
+{
+\left\langle
+\boldsymbol{\phi}_{0}^{\dagger},
+\mathcal{F}_{0}\boldsymbol{\phi}_{0}
+\right\rangle
+}.
+\label{eq:perturbation_reactivity}
+\end{equation}
+
+The inner product is defined by
+\begin{equation}
+\left\langle
+\mathbf{a},\mathbf{b}
+\right\rangle
+=
+\sum_{g=1}^{2}
+\int_{0}^{H}
+a_g(z)b_g(z)\,dz.
+\label{eq:inner_product}
+\end{equation}
+
+\subsubsection{Power and Core Thermal-Hydraulics}
+
+The volumetric fission power density is
+\begin{equation}
+q'''(z,t)
+=
+E_f
+\sum_{g=1}^{2}
+\Sigma_{f,g}(z,t)\phi_g(z,t),
+\label{eq:volumetric_power}
+\end{equation}
+where $E_f$ denotes the recoverable energy per fission. When the neutronic
+data are tabulated in terms of $\nu_g\Sigma_{f,g}$,
+\begin{equation}
+\Sigma_{f,g}(z,t)
+=
+\frac{\nu_g\Sigma_{f,g}(z,t)}{\nu_g}.
+\label{eq:sigmaf_from_nusigmaf}
+\end{equation}
+
+The linear power density is
+\begin{equation}
+q'(z,t)
+=
+A_f(z)q'''(z,t),
+\label{eq:linear_power}
+\end{equation}
+where $A_f(z)$ is the effective fuel-region cross-sectional area. The
+total thermal power is then given by
+\begin{equation}
+P(t)
+=
+\int_{0}^{H}
+q'(z,t)\,dz.
+\label{eq:total_power}
+\end{equation}
+
+The generated heat is partitioned between the fuel salt and graphite
+moderator:
+\begin{equation}
+\eta_s+\eta_{\mathrm{gr}}=1.
+\label{eq:heat_split}
+\end{equation}
+where $\eta_s$ and $\eta_{\mathrm{gr}}$ denote the fractions of heat
+deposited in the salt and graphite, respectively.
+
+The one-dimensional fuel-salt energy equation is
+\begin{equation}
+\rho_s c_{p,s}A_s
+\left(
+\frac{\partial T_s}{\partial t}
++
+u_c\frac{\partial T_s}{\partial z}
+\right)
+=
+\eta_s q'(z,t)
++
+h_{s\mathrm{gr}}P_{s\mathrm{gr}}
+\left[
+T_{\mathrm{gr}}(z,t)-T_s(z,t)
+\right].
+\label{eq:salt_energy}
+\end{equation}
+
+The graphite energy equation is
+\begin{equation}
+\rho_{\mathrm{gr}} c_{p,\mathrm{gr}}A_{\mathrm{gr}}
+\frac{\partial T_{\mathrm{gr}}}{\partial t}
+=
+\eta_{\mathrm{gr}}q'(z,t)
+-
+h_{s\mathrm{gr}}P_{s\mathrm{gr}}
+\left[
+T_{\mathrm{gr}}(z,t)-T_s(z,t)
+\right]
++
+\frac{\partial}{\partial z}
+\left[
+k_{\mathrm{gr}}A_{\mathrm{gr}}
+\frac{\partial T_{\mathrm{gr}}}{\partial z}
+\right].
+\label{eq:graphite_energy}
+\end{equation}
+
+In reduced-order applications that neglect axial graphite conduction, the
+last term in Eq.~\eqref{eq:graphite_energy} is omitted following
+sensitivity assessment.
+
+\subsubsection{Initial Conditions}
+
+The initial neutron flux is obtained from the steady-state eigenvalue
+problem
+\begin{equation}
+\mathcal{A}_0\boldsymbol{\Phi}_0
+=
+\frac{1}{k_0}
+\mathcal{F}_0\boldsymbol{\Phi}_0,
+\qquad
+k_0\approx 1.
+\label{eq:initial_eigenproblem}
+\end{equation}
+
+The flux is normalized to satisfy the reference thermal-power constraint:
+\begin{equation}
+\int_{0}^{H}
+E_f
+\sum_{g=1}^{2}
+\Sigma_{f,g}^{0}(z)\Phi_{0,g}(z)
+A_f(z)\,dz
+=
+P_0.
+\label{eq:power_normalization}
+\end{equation}
+
+The initial precursor concentrations follow from the steady-state
+flowing-fuel precursor equation:
+\begin{equation}
+u_c
+\frac{dC_{i,0}}{dz}
++
+\lambda_i C_{i,0}
+=
+\beta_i F_0(z),
+\qquad
+i=1,\ldots,6.
+\label{eq:initial_precursor}
+\end{equation}
+subject to the recirculation boundary condition
+\begin{equation}
+C_{i,0}(0)
+=
+C_{i,0}(H)
+\exp(-\lambda_i\tau_\ell).
+\label{eq:initial_precursor_bc}
+\end{equation}
+
+\subsubsection{Heat Exchanger Model}
+
+For heat exchanger $j$, the hot-side and cold-side bulk temperatures are
+denoted by $T_{h,j}(x,t)$ and $T_{c,j}(x,t)$, respectively, with
+$x\in[0,L_j]$. The one-dimensional advection--heat-transfer equations are
+\begin{equation}
+\frac{\partial T_{h,j}}{\partial t}
++
+u_{h,j}
+\frac{\partial T_{h,j}}{\partial x}
+=
+-
+\frac{
+U_jP_j
+}{
+\rho_{h,j}c_{p,h,j}A_{h,j}
+}
+\left[
+T_{h,j}(x,t)-T_{c,j}(x,t)
+\right],
+\label{eq:hx_hot}
+\end{equation}
+
+\begin{equation}
+\frac{\partial T_{c,j}}{\partial t}
++
+\epsilon_j u_{c,j}
+\frac{\partial T_{c,j}}{\partial x}
+=
++
+\frac{
+U_jP_j
+}{
+\rho_{c,j}c_{p,c,j}A_{c,j}
+}
+\left[
+T_{h,j}(x,t)-T_{c,j}(x,t)
+\right].
+\label{eq:hx_cold}
+\end{equation}
+
+The sign parameter $\epsilon_j$ distinguishes co-current flow
+($\epsilon_j=+1$) from counter-current flow ($\epsilon_j=-1$).
+
+For a co-current heat exchanger,
+\begin{equation}
+T_{h,j}(0,t)=T_{h,j}^{\mathrm{in}}(t),
+\qquad
+T_{c,j}(0,t)=T_{c,j}^{\mathrm{in}}(t).
+\label{eq:hx_cocurrent_bc}
+\end{equation}
+
+For a counter-current heat exchanger,
+\begin{equation}
+T_{h,j}(0,t)=T_{h,j}^{\mathrm{in}}(t),
+\qquad
+T_{c,j}(L_j,t)=T_{c,j}^{\mathrm{in}}(t).
+\label{eq:hx_countercurrent_bc}
+\end{equation}
+
+For the primary loop coupled directly to the reactor core,
+\begin{equation}
+T_{h,1}^{\mathrm{in}}(t)=T_s(H,t),
+\qquad
+T_s(0,t)=T_{h,1}^{\mathrm{out}}(t).
+\label{eq:core_hx_coupling}
+\end{equation}
+
+\subsubsection{Brayton Cycle Model}
+
+The compressor pressure ratio is
+\begin{equation}
+\pi_c=\frac{P_2}{P_1}.
+\label{eq:compressor_pressure_ratio}
+\end{equation}
+
+The ideal compressor outlet temperature is
+\begin{equation}
+T_{2s}
+=
+T_1
+\pi_c^{(\gamma_b-1)/\gamma_b},
+\label{eq:compressor_ideal}
+\end{equation}
+and the corresponding actual compressor outlet temperature is
+\begin{equation}
+T_2
+=
+T_1
++
+\frac{T_{2s}-T_1}{\eta_c}.
+\label{eq:compressor_actual}
+\end{equation}
+
+The turbine pressure ratio is
+\begin{equation}
+\pi_t=\frac{P_3}{P_4}.
+\label{eq:turbine_pressure_ratio}
+\end{equation}
+
+The ideal turbine outlet temperature is
+\begin{equation}
+T_{4s}
+=
+T_3
+\pi_t^{-(\gamma_b-1)/\gamma_b},
+\label{eq:turbine_ideal}
+\end{equation}
+and the corresponding actual turbine outlet temperature is
+\begin{equation}
+T_4
+=
+T_3
+-
+\eta_t
+\left(
+T_3-T_{4s}
+\right).
+\label{eq:turbine_actual}
+\end{equation}
+
+The compressor work, turbine work, and net work are
+\begin{equation}
+W_c
+=
+\dot{m}_b c_{p,b}
+\left(
+T_2-T_1
+\right),
+\label{eq:compressor_work}
+\end{equation}
+
+\begin{equation}
+W_t
+=
+\dot{m}_b c_{p,b}
+\left(
+T_3-T_4
+\right),
+\label{eq:turbine_work}
+\end{equation}
+
+\begin{equation}
+W_{\mathrm{net}}
+=
+W_t-W_c.
+\label{eq:net_work}
+\end{equation}
+
+The heat input from the salt-to-\(\mathrm{sCO_2}\) heat exchanger is
+\begin{equation}
+Q_{\mathrm{in}}
+=
+\dot{m}_b c_{p,b}
+\left(
+T_3-T_2
+\right),
+\label{eq:brayton_heat_input}
+\end{equation}
+and the heat rejected is
+\begin{equation}
+Q_{\mathrm{out}}
+=
+\dot{m}_b c_{p,b}
+\left(
+T_4-T_1
+\right).
+\label{eq:brayton_heat_rejection}
+\end{equation}
+
+The Brayton-cycle thermal efficiency is
+\begin{equation}
+\eta_b
+=
+\frac{W_{\mathrm{net}}}{Q_{\mathrm{in}}}.
+\label{eq:brayton_efficiency}
+\end{equation}
+
+When a recuperator is included, its effectiveness is represented by
+\begin{equation}
+T_{2r}
+=
+T_2
++
+\varepsilon_{\mathrm{rec}}
+\left(
+T_4-T_2
+\right),
+\label{eq:recuperator_cold_out}
+\end{equation}
+
+\begin{equation}
+T_{4r}
+=
+T_4
+-
+\left(
+T_{2r}-T_2
+\right),
+\label{eq:recuperator_hot_out}
+\end{equation}
+in which case Eq.~\eqref{eq:brayton_heat_input} is replaced by
+\begin{equation}
+Q_{\mathrm{in}}
+=
+\dot{m}_b c_{p,b}
+\left(
+T_3-T_{2r}
+\right).
+\label{eq:brayton_heat_input_recuperated}
+\end{equation}
+
+\subsection{Boundary closure}
+
+The coupled model is closed by prescribing data only at physical inflow
+boundaries, while treating outflow quantities as solution outputs.
+For the neutron diffusion equations, extrapolated vacuum boundary
+conditions are imposed at the two axial ends:
+\[
+\phi_g(0,t)-d_{e,g}\left.\frac{\partial \phi_g}{\partial z}\right|_{z=0}=0,
+\]
+\[
+\phi_g(H,t)+d_{e,g}\left.\frac{\partial \phi_g}{\partial z}\right|_{z=H}=0,
+\qquad g=1,2.
+\]
+
+For the flowing-fuel precursor balance, $u_c>0$, and only an inlet
+condition at $z=0$ is required. With external-loop recirculation, the
+inlet condition becomes
+\[
+C_i(0,t)
+=
+\eta_\ell C_i(H,t-\tau_\ell)
+\exp(-\lambda_i\tau_\ell),
+\qquad i=1,\ldots,6.
+\]
+No boundary condition is imposed at $z=H$, since this boundary is purely
+outflow. For $0<t<\tau_\ell$, the delayed term is evaluated from the
+steady-state history
+\[
+C_i(H,\theta)=C_{i,0}(H),
+\qquad -\tau_\ell\leq \theta<0.
+\]
+
+For the fuel-salt energy equation, the only required axial thermal
+boundary condition is the inlet temperature:
+\[
+T_s(0,t)=T_{s,\mathrm{in}}(t).
+\]
+The outlet temperature is evaluated from the solution as
+\[
+T_{s,\mathrm{out}}(t)=T_s(H,t).
+\]
+When the primary heat exchanger is explicitly coupled to the core, the
+inlet temperature is closed by
+\[
+T_{s,\mathrm{in}}(t)=T_{h,1}^{\mathrm{out}}(t),
+\]
+and the heat-exchanger hot-side inlet is
+\[
+T_{h,1}^{\mathrm{in}}(t)=T_s(H,t).
+\]
+When pipe and plenum transport delays are retained, these relations are
+replaced by
+\[
+T_{h,1}^{\mathrm{in}}(t)=T_s(H,t-\tau_{c\rightarrow h}),
+\]
+\[
+T_{s,\mathrm{in}}(t)=T_{h,1}^{\mathrm{out}}(t-\tau_{h\rightarrow c}).
+\]
+
+When axial conduction is retained in the graphite energy equation,
+adiabatic axial boundary conditions are imposed:
+\[
+\left.\frac{\partial T_{\mathrm{gr}}}{\partial z}\right|_{z=0}=0,
+\qquad
+\left.\frac{\partial T_{\mathrm{gr}}}{\partial z}\right|_{z=H}=0.
+\]
+When axial graphite conduction is neglected, the graphite energy equation
+becomes local in $z$, and no axial boundary condition is required for
+$T_{\mathrm{gr}}$.
+
+For each heat exchanger, boundary conditions are imposed only at inflow
+boundaries. For co-current flow,
+\[
+T_{h,j}(0,t)=T_{h,j}^{\mathrm{in}}(t),
+\qquad
+T_{c,j}(0,t)=T_{c,j}^{\mathrm{in}}(t).
+\]
+For counter-current flow,
+\[
+T_{h,j}(0,t)=T_{h,j}^{\mathrm{in}}(t),
+\qquad
+T_{c,j}(L_j,t)=T_{c,j}^{\mathrm{in}}(t).
+\]
+All outlet temperatures are evaluated from the solution rather than
+prescribed.
+
+\subsection{Verification Quantities for the Revised Model}
+
+The delayed-neutron source density is defined as
+\begin{equation}
+S_d(z,t)
+=
+\sum_{i=1}^{6}
+\lambda_i C_i(z,t).
+\label{eq:delayed_source_density}
+\end{equation}
+
+The corresponding normalized delayed-neutron source shape is
+\begin{equation}
+\widehat{S}_d(z,t)
+=
+\frac{
+S_d(z,t)
+}{
+\displaystyle
+\int_{0}^{H}
+S_d(z,t)\,dz
+}.
+\label{eq:normalized_delayed_source}
+\end{equation}
+
+To quantify the effect of fuel circulation, three precursor models are
+considered:
+\begin{equation}
+u_c=0
+\quad
+\text{stationary fuel},
+\label{eq:stationary_fuel_case}
+\end{equation}
+
+\begin{equation}
+u_c\neq 0,
+\qquad
+C_i(0,t)=0
+\quad
+\text{core advection without recirculation},
+\label{eq:advection_no_recirculation_case}
+\end{equation}
+
+\begin{equation}
+u_c\neq 0,
+\qquad
+C_i(0,t)=C_i(H,t-\tau_\ell)e^{-\lambda_i\tau_\ell}
+\quad
+\text{flowing fuel with external-loop recirculation}.
+\label{eq:advection_recirculation_case}
+\end{equation}
+
+The relative $L_2$ error between a computed quantity $y(z)$ and a
+reference quantity $y_{\mathrm{ref}}(z)$ is
+\begin{equation}
+\varepsilon_{2}
+=
+\frac{
+\left[
+\displaystyle
+\int_{0}^{H}
+\left(
+y(z)-y_{\mathrm{ref}}(z)
+\right)^2 dz
+\right]^{1/2}
+}
+{
+\left[
+\displaystyle
+\int_{0}^{H}
+y_{\mathrm{ref}}^{2}(z)\,dz
+\right]^{1/2}
+}.
+\label{eq:l2_error}
+\end{equation}
+
+The maximum-norm relative error is
+\begin{equation}
+\varepsilon_{\infty}
+=
+\frac{
+\max_{z\in[0,H]}
+\left|
+y(z)-y_{\mathrm{ref}}(z)
+\right|
+}
+{
+\max_{z\in[0,H]}
+\left|
+y_{\mathrm{ref}}(z)
+\right|
+}.
+\label{eq:linf_error}
+\end{equation}
+
+To assess the ability of the revised feedback treatment to capture
+region-dependent temperature worth, localized salt-temperature
+perturbations are imposed:
+\begin{equation}
+\Delta T_s^{(z_0)}(z)
+=
+\Delta T_0
+\exp
+\left[
+-\frac{(z-z_0)^2}{2\sigma_T^2}
+\right],
+\label{eq:localized_temperature_perturbation}
+\end{equation}
+and the corresponding global reactivity response is evaluated from
+Eq.~\eqref{eq:perturbation_reactivity}. The expected trend is
+\begin{equation}
+\left|
+\Delta\rho_{\mathrm{center}}
+\right|
+>
+\left|
+\Delta\rho_{\mathrm{inlet}}
+\right|,
+\qquad
+\left|
+\Delta\rho_{\mathrm{center}}
+\right|
+>
+\left|
+\Delta\rho_{\mathrm{outlet}}
+\right|.
+\label{eq:temperature_worth_trend}
+\end{equation}
 
 \end{document}

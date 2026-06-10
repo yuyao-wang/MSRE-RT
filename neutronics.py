@@ -1,124 +1,121 @@
-from scipy.sparse.linalg import spsolve
 import numpy as np
-from scipy.sparse import csc_matrix
 
+from cross_sections import build_cross_sections, estimate_global_reactivity
 from ode_solver import ode_solver
+from precursor_loop import precursor_inlet_from_loop, record_precursor_outlet
 
 
-def neutronics(y_n, rho, step, params):
-    # Extract relevant parameters from the params dictionary
-    v_core = params['v_core']
-    inlet_mode = params['inlet_mode']
-    N = params['N']
-    dt = params['dt']
-    dz = params['dz']
-    V = params['V']
-    D = params['D']
-    sigma_a = params['sigma_a']
-    nu_sigma_f = params['nu_sigma_f']
+def _diffusion_term(phi, diffusion, dz, d_extrap):
+    left_ghost = phi[1] - 2.0 * dz * phi[0] / max(d_extrap, 1.0e-12)
+    right_ghost = phi[-2] - 2.0 * dz * phi[-1] / max(d_extrap, 1.0e-12)
 
-    beta = params.get('beta_np', np.asarray(params['beta'], dtype=float))          # array-like, len=6
-    lambda_i = params.get('lambda_i_np', np.asarray(params['lambda_i'], dtype=float))  # array-like, len=6
-    Beta = float(beta.sum())
+    phi_ext = np.concatenate(([left_ghost], phi, [right_ghost]))
+    diffusion_ext = np.concatenate(([diffusion[0]], diffusion, [diffusion[-1]]))
 
-    # --- NEW (minimal): drift settings ---
-    v_core = params.get('v_core', 1.0)              # m/s
-    inlet_mode = params.get('inlet_mode', 'copy')   # 'fresh' or 'copy'
-    if inlet_mode not in ('fresh', 'copy'):
-        raise ValueError("params['inlet_mode'] must be 'fresh' or 'copy'")
+    d_face = 0.5 * (diffusion_ext[:-1] + diffusion_ext[1:])
+    phi_jump = phi_ext[1:] - phi_ext[:-1]
 
-    A = params.get('A_neutronics')
-    B = params.get('B_neutronics')
-    if A is None or B is None:
-        # Discretize the spatial domain and set up the Crank-Nicolson matrices
-        main_diag = -2 * np.ones(N)
-        off_diag = np.ones(N - 1)
-        D2 = (np.diag(main_diag) + np.diag(off_diag, 1) + np.diag(off_diag, -1)) / dz**2
+    return (d_face[1:] * phi_jump[1:] - d_face[:-1] * phi_jump[:-1]) / dz**2
 
-        # Dirichlet boundary conditions for zero flux at boundaries
-        D2[0, :] = 0
-        D2[-1, :] = 0
-        D2[0, 0] = 1
-        D2[-1, -1] = 1
 
-        D2_sparse = csc_matrix(D2)
-        I = np.eye(N)
+def _precursor_advection(C, inlet, velocity, dz):
+    C_im1 = np.empty_like(C)
+    C_im1[:, 0] = inlet
+    C_im1[:, 1:] = C[:, :-1]
+    return velocity * (C - C_im1) / dz
 
-        A = csc_matrix(I - 0.5 * dt * V * D * D2_sparse)
-        B = csc_matrix(I + 0.5 * dt * V * D * D2_sparse)
 
-    # NOTE: your original code uses Keff = 1/(1 - rho) indirectly via (1+rho).
-    # Keep your original convention to avoid breaking your model.
-    # (If you later want to fix consistency, we can do it separately.)
+def _initial_state(params):
+    return np.concatenate([
+        np.asarray(params["phi_1_0"], dtype=float),
+        np.asarray(params["phi_2_0"], dtype=float),
+        np.asarray(params["c0"], dtype=float),
+    ])
+
+
+def _extract_state(y, N, precursor_groups):
+    phi_1 = y[:N]
+    phi_2 = y[N:2 * N]
+    C = y[2 * N:].reshape(precursor_groups, N)
+    return phi_1, phi_2, C
+
+
+def neutronics(y_n, state, step, params):
+    N = params["N"]
+    dz = params["dz"]
+    precursor_groups = params["precursor_groups"]
+
+    beta = np.asarray(params["beta_np"], dtype=float)
+    Beta = float(params["Beta"])
+    lambda_i = np.asarray(params["lambda_i_np"], dtype=float)
+    chi_p = np.asarray(params["chi_p"], dtype=float)
+    chi_d = np.asarray(params["chi_d"], dtype=float)
+    neutron_velocity = np.asarray(params["neutron_velocity"], dtype=float)
+    d_e = np.asarray(params["d_e"], dtype=float)
+    u_core = float(params["u_core"])
+    outer_dt = float(params.get("outer_dt", 1.0))
+    current_time = step * outer_dt
+    precursor_inlet = precursor_inlet_from_loop(params, current_time)
+
+    temperature_fuel = state.get("temperature_fuel")
+    temperature_graphite = state.get("temperature_graphite")
+    rod_position = float(state.get("rod_position", 0.0))
+    external_reactivity = float(state.get("external_reactivity", 0.0))
+
+    xs = build_cross_sections(
+        temperature_fuel=temperature_fuel,
+        temperature_graphite=temperature_graphite,
+        params=params,
+        rod_position=rod_position,
+        external_reactivity=external_reactivity,
+    )
+    params["last_global_rho"] = estimate_global_reactivity(xs, params)
+    params["last_cross_sections"] = xs
 
     def pde_to_ode_neutronics(t, y):
-        phi = y[:N]
+        phi_1, phi_2, C = _extract_state(y, N, precursor_groups)
 
-        # delayed source term sum_i lambda_i * Ci
-        C = y[N:].reshape(6, N)
-        lambda_ci = (lambda_i[:, None] * C).sum(axis=0)
+        F = xs["nu_sigma_f"][0] * phi_1 + xs["nu_sigma_f"][1] * phi_2
+        delayed_source = np.sum(lambda_i[:, None] * C, axis=0)
 
-        # Crank-Nicolson update for phi
-        rhs_phi = B @ phi + dt * V * ((-sigma_a + ((1 - Beta) * nu_sigma_f * (1 + rho))) * phi + lambda_ci)
-        phi_new = spsolve(A, rhs_phi)
-        dphi_dt = (phi_new - phi) / dt
+        diffusion_1 = _diffusion_term(phi_1, xs["D"][0], dz, d_e[0])
+        diffusion_2 = _diffusion_term(phi_2, xs["D"][1], dz, d_e[1])
 
-        # ---------- Precursor advection in face-flux form ----------
-        # Eq: dCi/dt + d/dz(v Ci) = beta_i * nuSigF*(1+rho)*phi - lambda_i*Ci
-        # => dCi/dt = production - lambda_i*Ci - d/dz(v Ci)
-        # Discretization: adv_j = (F_{j+1/2} - F_{j-1/2})/dz, F = v * C_upwind.
-        # Boundary policy:
-        # - Inlet face: prescribe F via inlet concentration C_in (fresh/copy).
-        # - Outlet face: natural outflow (upwind value from the boundary cell).
-        v = float(v_core)
-        F = np.empty((6, N + 1), dtype=C.dtype)
-        if v >= 0.0:
-            # Left face is inlet, right face is outlet.
-            if inlet_mode == 'fresh':
-                C_in_left = 0.0
-            else:  # 'copy'
-                C_in_left = C[:, 0]
+        rhs_1 = (
+            diffusion_1
+            - xs["sigma_r"][0] * phi_1
+            + chi_p[0] * (1.0 - Beta) * F
+            + chi_d[0] * delayed_source
+        )
+        rhs_2 = (
+            diffusion_2
+            - xs["sigma_r"][1] * phi_2
+            + xs["sigma_s12"] * phi_1
+            + chi_p[1] * (1.0 - Beta) * F
+            + chi_d[1] * delayed_source
+        )
 
-            F[:, 0] = v * C_in_left
-            F[:, 1:N] = v * C[:, :-1]
-            F[:, N] = v * C[:, -1]
-        else:
-            # Right face is inlet, left face is outlet.
-            if inlet_mode == 'fresh':
-                C_in_right = 0.0
-            else:  # 'copy'
-                C_in_right = C[:, -1]
+        dphi_1_dt = neutron_velocity[0] * rhs_1
+        dphi_2_dt = neutron_velocity[1] * rhs_2
 
-            F[:, 0] = v * C[:, 0]
-            F[:, 1:N] = v * C[:, 1:]
-            F[:, N] = v * C_in_right
+        precursor_production = beta[:, None] * F
+        precursor_advection = _precursor_advection(C, precursor_inlet, u_core, dz)
+        dC_dt = precursor_production - lambda_i[:, None] * C - precursor_advection
 
-        adv = (F[:, 1:] - F[:, :-1]) / dz
-        production = (beta[:, None] * (nu_sigma_f * (1 + rho)) * phi)
-        dci_dt = production - (lambda_i[:, None] * C) - adv
+        return np.concatenate([dphi_1_dt, dphi_2_dt, dC_dt.reshape(-1)])
 
-        # return concatenated derivative vector
-        return np.concatenate([dphi_dt, dci_dt.reshape(-1)])
-
-    # Initial condition vector
-    if step == 0:
-        phi_0 = params['phi_0']
-        c0 = params['c0']
-        y0 = np.concatenate([
-            phi_0,
-            c0[:N], c0[N:2 * N], c0[2 * N:3 * N],
-            c0[3 * N:4 * N], c0[4 * N:5 * N], c0[5 * N:]
-        ])
+    if step == 0 or y_n.size != params["neutronics_state_size"]:
+        y0 = _initial_state(params)
     else:
-        y0 = y_n
+        y0 = np.asarray(y_n, dtype=float)
 
-    # Solve the system of ODEs
-    bc = []
-    solution_y_n = ode_solver(y0, bc, pde_to_ode_neutronics, params)
+    solution_y_n = ode_solver(y0, [], pde_to_ode_neutronics, params)
+    y_n = solution_y_n.y
 
-    # Extract the solution
-    phi = solution_y_n[:N, -1].T
-    q_prime = phi
-    y_n = solution_y_n
+    phi_1, phi_2, C = _extract_state(y_n[:, -1], N, precursor_groups)
+    record_precursor_outlet(params, current_time + outer_dt, C[:, -1])
+
+    q_vol = params["power_scale"] * np.sum(xs["sigma_f"] * np.vstack([phi_1, phi_2]), axis=0)
+    q_prime = np.asarray(params["A_f"], dtype=float) * q_vol
 
     return y_n, q_prime
