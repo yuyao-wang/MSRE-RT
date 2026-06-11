@@ -974,6 +974,28 @@ extern "C" void core_step_kernel_n80_s1(
     core_step_kernel_impl<80, 1>(state, params, Ts_core_inlet, rod_position, external_reactivity, boundary_out);
 }
 
+extern "C" void core_step_kernel_n200_s1(
+    CoreStepState* state,
+    const KernelParams* params,
+    double Ts_core_inlet,
+    double rod_position,
+    double external_reactivity,
+    CoreStepBoundary* boundary_out
+) {
+#pragma HLS INTERFACE m_axi port=state offset=slave bundle=gmem0
+#pragma HLS INTERFACE m_axi port=params offset=slave bundle=gmem1
+#pragma HLS INTERFACE m_axi port=boundary_out offset=slave bundle=gmem2
+#pragma HLS INTERFACE s_axilite port=state bundle=control
+#pragma HLS INTERFACE s_axilite port=params bundle=control
+#pragma HLS INTERFACE s_axilite port=Ts_core_inlet bundle=control
+#pragma HLS INTERFACE s_axilite port=rod_position bundle=control
+#pragma HLS INTERFACE s_axilite port=external_reactivity bundle=control
+#pragma HLS INTERFACE s_axilite port=boundary_out bundle=control
+#pragma HLS INTERFACE s_axilite port=return bundle=control
+
+    core_step_kernel_impl<200, 1>(state, params, Ts_core_inlet, rod_position, external_reactivity, boundary_out);
+}
+
 template <int FixedNx, int FixedSubsteps>
 void bop_step_kernel_impl(
     BopStepState* state,
@@ -1090,6 +1112,30 @@ extern "C" void bop_step_kernel_n80_s1(
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
     bop_step_kernel_impl<80, 1>(state, params, Ts_HX1_L, Tss_HX1_0, Tss_HX2_L, Tsss_HX2_0, boundary_out);
+}
+
+extern "C" void bop_step_kernel_n200_s1(
+    BopStepState* state,
+    const KernelParams* params,
+    double Ts_HX1_L,
+    double Tss_HX1_0,
+    double Tss_HX2_L,
+    double Tsss_HX2_0,
+    BopStepBoundary* boundary_out
+) {
+#pragma HLS INTERFACE m_axi port=state offset=slave bundle=gmem0
+#pragma HLS INTERFACE m_axi port=params offset=slave bundle=gmem1
+#pragma HLS INTERFACE m_axi port=boundary_out offset=slave bundle=gmem2
+#pragma HLS INTERFACE s_axilite port=state bundle=control
+#pragma HLS INTERFACE s_axilite port=params bundle=control
+#pragma HLS INTERFACE s_axilite port=Ts_HX1_L bundle=control
+#pragma HLS INTERFACE s_axilite port=Tss_HX1_0 bundle=control
+#pragma HLS INTERFACE s_axilite port=Tss_HX2_L bundle=control
+#pragma HLS INTERFACE s_axilite port=Tsss_HX2_0 bundle=control
+#pragma HLS INTERFACE s_axilite port=boundary_out bundle=control
+#pragma HLS INTERFACE s_axilite port=return bundle=control
+
+    bop_step_kernel_impl<200, 1>(state, params, Ts_HX1_L, Tss_HX1_0, Tss_HX2_L, Tsss_HX2_0, boundary_out);
 }
 
 extern "C" void msr_power_reduction_bench(
