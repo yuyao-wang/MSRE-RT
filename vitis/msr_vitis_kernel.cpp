@@ -14,6 +14,8 @@ constexpr int kCrossSectionLaneFactor = 4;
 constexpr int kNeutronicsLaneFactor = 4;
 constexpr int kThermalLaneFactor = 4;
 constexpr int kHeatExchangerLaneFactor = 4;
+constexpr int kReductionBlockSize = 8;
+constexpr int kReductionAccumulatorSlots = 8;
 
 enum InletMode : int {
     kInletRecirculate = 0,
@@ -200,6 +202,17 @@ inline double max2(double a, double b) {
     return a > b ? a : b;
 }
 
+inline double reduce_sum_tree_8(const double values[kReductionAccumulatorSlots]) {
+#pragma HLS INLINE
+    const double level0_0 = values[0] + values[1];
+    const double level0_1 = values[2] + values[3];
+    const double level0_2 = values[4] + values[5];
+    const double level0_3 = values[6] + values[7];
+    const double level1_0 = level0_0 + level0_1;
+    const double level1_1 = level0_2 + level0_3;
+    return level1_0 + level1_1;
+}
+
 inline int wrap_index(int idx, int size) {
     while (idx < 0) {
         idx += size;
@@ -211,12 +224,33 @@ inline int wrap_index(int idx, int size) {
 }
 
 double trapz_uniform(const double* y, const double* x, int N) {
-    double total = 0.0;
-    for (int idx = 0; idx + 1 < N; ++idx) {
-#pragma HLS PIPELINE II=1
-        total += 0.5 * (y[idx] + y[idx + 1]) * (x[idx + 1] - x[idx]);
+    double partial[kReductionAccumulatorSlots];
+#pragma HLS ARRAY_PARTITION variable=partial complete dim=1
+
+    for (int lane = 0; lane < kReductionAccumulatorSlots; ++lane) {
+#pragma HLS UNROLL
+        partial[lane] = 0.0;
     }
-    return total;
+
+    const int segments = (N > 0) ? (N - 1) : 0;
+    const int blocks = (segments + kReductionBlockSize - 1) / kReductionBlockSize;
+    for (int block = 0; block < blocks; ++block) {
+#pragma HLS PIPELINE II=1
+        double block_terms[kReductionBlockSize];
+#pragma HLS ARRAY_PARTITION variable=block_terms complete dim=1
+
+        for (int lane = 0; lane < kReductionBlockSize; ++lane) {
+#pragma HLS UNROLL
+            const int idx = block * kReductionBlockSize + lane;
+            block_terms[lane] = (idx < segments)
+                ? 0.5 * (y[idx] + y[idx + 1]) * (x[idx + 1] - x[idx])
+                : 0.0;
+        }
+
+        const int slot = block & (kReductionAccumulatorSlots - 1);
+        partial[slot] += reduce_sum_tree_8(block_terms);
+    }
+    return reduce_sum_tree_8(partial);
 }
 
 double delay_line_update(DelayLine& line, double input_value, double initial_output, int step) {
@@ -1012,14 +1046,8 @@ extern "C" void msr_step_kernel(
     const double Tsss_pp_L = delay_line_update(local_delays.r_pp, Tsss_HX2_L, local_params.Tsss_out, step);
     local_state.Tsss_pp_0 = brayton_kernel(local_params, Tsss_pp_L);
 
-    double power = 0.0;
     const double phi_mid = local_state.phi1[local_params.N / 2] + local_state.phi2[local_params.N / 2];
-    for (int idx = 0; idx < local_params.N; ++idx) {
-#pragma HLS PIPELINE II=1
-        power += (idx + 1 == local_params.N)
-            ? 0.0
-            : 0.5 * (q_prime[idx] + q_prime[idx + 1]) * (local_params.z[idx + 1] - local_params.z[idx]);
-    }
+    const double power = trapz_uniform(q_prime, local_params.z, local_params.N);
 
     local_diagnostics.phi_mid = phi_mid;
     local_diagnostics.rho = rho;
