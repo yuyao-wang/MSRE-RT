@@ -18,9 +18,78 @@ namespace msr_vitis {
 #define MSR_HEAT_EXCHANGER_LANE_FACTOR 4
 #endif
 
+#ifndef MSR_FIXED_CORE_N
+#define MSR_FIXED_CORE_N 0
+#endif
+
+#ifndef MSR_FIXED_BOP_NX
+#define MSR_FIXED_BOP_NX 0
+#endif
+
+#ifndef MSR_FIXED_HARDWARE_SUBSTEPS
+#define MSR_FIXED_HARDWARE_SUBSTEPS 0
+#endif
+
+#ifndef MSR_MAX_STATE_N
+#define MSR_MAX_STATE_N 128
+#endif
+
+#ifndef MSR_MAX_HARDWARE_SUBSTEPS
+#define MSR_MAX_HARDWARE_SUBSTEPS 32
+#endif
+
+#define MSR_HLS_STRINGIFY_IMPL(x) #x
+#define MSR_HLS_STRINGIFY(x) MSR_HLS_STRINGIFY_IMPL(x)
+#define MSR_HLS_LOOP_TRIPCOUNT(min_v, max_v) _Pragma(MSR_HLS_STRINGIFY(HLS LOOP_TRIPCOUNT min=min_v max=max_v))
+
+#if MSR_FIXED_CORE_N > 0
+#define MSR_CORE_SPATIAL_LOOP_MIN MSR_FIXED_CORE_N
+#define MSR_CORE_SPATIAL_LOOP_MAX MSR_FIXED_CORE_N
+#define MSR_CORE_SPATIAL_MINUS_ONE_LOOP_MIN (MSR_FIXED_CORE_N - 1)
+#define MSR_CORE_SPATIAL_MINUS_ONE_LOOP_MAX (MSR_FIXED_CORE_N - 1)
+#else
+#define MSR_CORE_SPATIAL_LOOP_MIN 1
+#define MSR_CORE_SPATIAL_LOOP_MAX MSR_MAX_STATE_N
+#define MSR_CORE_SPATIAL_MINUS_ONE_LOOP_MIN 0
+#define MSR_CORE_SPATIAL_MINUS_ONE_LOOP_MAX (MSR_MAX_STATE_N - 1)
+#endif
+
+#if MSR_FIXED_BOP_NX > 0
+#define MSR_BOP_SPATIAL_LOOP_MIN MSR_FIXED_BOP_NX
+#define MSR_BOP_SPATIAL_LOOP_MAX MSR_FIXED_BOP_NX
+#else
+#define MSR_BOP_SPATIAL_LOOP_MIN 1
+#define MSR_BOP_SPATIAL_LOOP_MAX MSR_MAX_STATE_N
+#endif
+
+#if MSR_FIXED_CORE_N > 0
+#define MSR_GENERIC_SPATIAL_LOOP_MIN MSR_FIXED_CORE_N
+#define MSR_GENERIC_SPATIAL_LOOP_MAX MSR_FIXED_CORE_N
+#define MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MIN (MSR_FIXED_CORE_N - 1)
+#define MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MAX (MSR_FIXED_CORE_N - 1)
+#elif MSR_FIXED_BOP_NX > 0
+#define MSR_GENERIC_SPATIAL_LOOP_MIN MSR_FIXED_BOP_NX
+#define MSR_GENERIC_SPATIAL_LOOP_MAX MSR_FIXED_BOP_NX
+#define MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MIN (MSR_FIXED_BOP_NX - 1)
+#define MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MAX (MSR_FIXED_BOP_NX - 1)
+#else
+#define MSR_GENERIC_SPATIAL_LOOP_MIN 1
+#define MSR_GENERIC_SPATIAL_LOOP_MAX MSR_MAX_STATE_N
+#define MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MIN 0
+#define MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MAX (MSR_MAX_STATE_N - 1)
+#endif
+
+#if MSR_FIXED_HARDWARE_SUBSTEPS > 0
+#define MSR_SUBSTEP_LOOP_MIN MSR_FIXED_HARDWARE_SUBSTEPS
+#define MSR_SUBSTEP_LOOP_MAX MSR_FIXED_HARDWARE_SUBSTEPS
+#else
+#define MSR_SUBSTEP_LOOP_MIN 1
+#define MSR_SUBSTEP_LOOP_MAX MSR_MAX_HARDWARE_SUBSTEPS
+#endif
+
 constexpr int kEnergyGroups = 2;
 constexpr int kPrecursorGroups = 6;
-constexpr int kMaxN = 128;
+constexpr int kMaxN = MSR_MAX_STATE_N;
 constexpr int kMaxDelaySlots = 32;
 constexpr int kMaxLoopHistory = 64;
 constexpr int kCrossSectionLaneFactor = MSR_CROSS_SECTION_LANE_FACTOR;
@@ -251,6 +320,7 @@ double trapz_uniform(const double* y, const double* x, int N) {
     double prev_y = y[0];
     double prev_x = x[0];
     for (int idx = 1; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MIN, MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MAX)
 #pragma HLS PIPELINE II=1
         const double curr_y = y[idx];
         const double curr_x = x[idx];
@@ -356,6 +426,7 @@ void cross_sections_kernel(
     CrossSections& xs
 ) {
     for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kCrossSectionLaneFactor
         const double delta_T_s = state.fuel[idx] - params.T_s_ref[idx];
@@ -414,6 +485,7 @@ double estimate_global_rho(const KernelParams& params, const CrossSections& xs) 
 #pragma HLS ARRAY_PARTITION variable=absorption cyclic factor=kCrossSectionLaneFactor dim=1
 
     for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kCrossSectionLaneFactor
         production[idx] =
@@ -447,6 +519,7 @@ void diffusion_term(
 #pragma HLS ARRAY_PARTITION variable=result cyclic factor=kNeutronicsLaneFactor dim=1
 
     for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kNeutronicsLaneFactor
         const double phi_center = phi[idx];
@@ -491,6 +564,7 @@ void neutronics_rhs(
     diffusion_term(phi2, xs.D[1], params.N, params.dz, params.d_e[1], diffusion_2);
 
     for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kNeutronicsLaneFactor
         F[idx] = xs.nu_sigma_f[0][idx] * phi1[idx] + xs.nu_sigma_f[1][idx] * phi2[idx];
@@ -519,6 +593,7 @@ void neutronics_rhs(
 
     for (int group = 0; group < kPrecursorGroups; ++group) {
         for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kNeutronicsLaneFactor
             const double C_im1 = (idx == 0) ? precursor_inlet[group] : C[group][idx - 1];
@@ -542,6 +617,7 @@ void compute_q_prime(
 #pragma HLS ARRAY_PARTITION variable=phi2 cyclic factor=kNeutronicsLaneFactor dim=1
 #pragma HLS ARRAY_PARTITION variable=q_prime cyclic factor=kNeutronicsLaneFactor dim=1
     for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kNeutronicsLaneFactor
         const double q_vol =
@@ -575,6 +651,7 @@ void combine_neutronics(
 #pragma HLS ARRAY_PARTITION variable=C complete dim=1
 #pragma HLS ARRAY_PARTITION variable=C cyclic factor=kNeutronicsLaneFactor dim=2
     for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kNeutronicsLaneFactor
         phi1[idx] += (dt / 6.0) * (k1_phi1[idx] + 2.0 * k2_phi1[idx] + 2.0 * k3_phi1[idx] + k4_phi1[idx]);
@@ -582,6 +659,7 @@ void combine_neutronics(
     }
     for (int group = 0; group < kPrecursorGroups; ++group) {
         for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kNeutronicsLaneFactor
             C[group][idx] +=
@@ -613,6 +691,7 @@ void load_neutronics_stage(
 #pragma HLS ARRAY_PARTITION variable=C_stage complete dim=1
 #pragma HLS ARRAY_PARTITION variable=C_stage cyclic factor=kNeutronicsLaneFactor dim=2
     for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kNeutronicsLaneFactor
         phi1_stage[idx] = phi1[idx] + scale * dphi1[idx];
@@ -620,6 +699,7 @@ void load_neutronics_stage(
     }
     for (int group = 0; group < kPrecursorGroups; ++group) {
         for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kNeutronicsLaneFactor
             C_stage[group][idx] = C[group][idx] + scale * dC[group][idx];
@@ -639,6 +719,7 @@ void neutronics_kernel(
 
     const double dt = params.outer_dt / static_cast<double>(params.hardware_substeps);
     for (int substep = 0; substep < params.hardware_substeps; ++substep) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_SUBSTEP_LOOP_MIN, MSR_SUBSTEP_LOOP_MAX)
         double k1_phi1[kMaxN], k2_phi1[kMaxN], k3_phi1[kMaxN], k4_phi1[kMaxN];
         double k1_phi2[kMaxN], k2_phi2[kMaxN], k3_phi2[kMaxN], k4_phi2[kMaxN];
         double k1_C[kPrecursorGroups][kMaxN];
@@ -709,6 +790,7 @@ void thermal_rhs(
 #pragma HLS ARRAY_PARTITION variable=dfuel cyclic factor=kThermalLaneFactor dim=1
 #pragma HLS ARRAY_PARTITION variable=dgraphite cyclic factor=kThermalLaneFactor dim=1
     for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kThermalLaneFactor
         const double fuel_im1 = (idx == 0) ? inlet_temperature : fuel[idx - 1];
@@ -753,6 +835,7 @@ void load_thermal_stage(
 #pragma HLS ARRAY_PARTITION variable=fuel_stage cyclic factor=kThermalLaneFactor dim=1
 #pragma HLS ARRAY_PARTITION variable=graphite_stage cyclic factor=kThermalLaneFactor dim=1
     for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kThermalLaneFactor
         fuel_stage[idx] = fuel[idx] + scale * dfuel[idx];
@@ -768,6 +851,7 @@ void thermal_kernel(
 ) {
     const double dt = params.outer_dt / static_cast<double>(params.hardware_substeps);
     for (int substep = 0; substep < params.hardware_substeps; ++substep) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_SUBSTEP_LOOP_MIN, MSR_SUBSTEP_LOOP_MAX)
         double k1_fuel[kMaxN], k2_fuel[kMaxN], k3_fuel[kMaxN], k4_fuel[kMaxN];
         double k1_graphite[kMaxN], k2_graphite[kMaxN], k3_graphite[kMaxN], k4_graphite[kMaxN];
         double fuel_stage[kMaxN], graphite_stage[kMaxN];
@@ -791,6 +875,7 @@ void thermal_kernel(
         thermal_rhs(params, q_prime, Ts_core_inlet, fuel_stage, graphite_stage, k4_fuel, k4_graphite);
 
         for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kThermalLaneFactor
             state.fuel[idx] += (dt / 6.0) * (k1_fuel[idx] + 2.0 * k2_fuel[idx] + 2.0 * k3_fuel[idx] + k4_fuel[idx]);
@@ -820,6 +905,7 @@ void hx_rhs(
 #pragma HLS ARRAY_PARTITION variable=dhot cyclic factor=kHeatExchangerLaneFactor dim=1
 #pragma HLS ARRAY_PARTITION variable=dcold cyclic factor=kHeatExchangerLaneFactor dim=1
     for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_BOP_SPATIAL_LOOP_MIN, MSR_BOP_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kHeatExchangerLaneFactor
         const double hot_gradient = (hot_velocity >= 0.0)
@@ -851,6 +937,7 @@ void hx_kernel(
 ) {
     const double dt = outer_dt / static_cast<double>(hardware_substeps);
     for (int substep = 0; substep < hardware_substeps; ++substep) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_SUBSTEP_LOOP_MIN, MSR_SUBSTEP_LOOP_MAX)
         double k1_hot[kMaxN], k2_hot[kMaxN], k3_hot[kMaxN], k4_hot[kMaxN];
         double k1_cold[kMaxN], k2_cold[kMaxN], k3_cold[kMaxN], k4_cold[kMaxN];
         double hot_stage[kMaxN], cold_stage[kMaxN];
@@ -867,6 +954,7 @@ void hx_kernel(
 #pragma HLS ARRAY_PARTITION variable=cold_stage cyclic factor=kHeatExchangerLaneFactor dim=1
         hx_rhs(N, dx, hot_velocity, cold_velocity, hot_exchange_coeff, cold_exchange_coeff, err, hot_inlet, cold_inlet, hot, cold, k1_hot, k1_cold);
         for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_BOP_SPATIAL_LOOP_MIN, MSR_BOP_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kHeatExchangerLaneFactor
             hot_stage[idx] = hot[idx] + 0.5 * dt * k1_hot[idx];
@@ -874,6 +962,7 @@ void hx_kernel(
         }
         hx_rhs(N, dx, hot_velocity, cold_velocity, hot_exchange_coeff, cold_exchange_coeff, err, hot_inlet, cold_inlet, hot_stage, cold_stage, k2_hot, k2_cold);
         for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_BOP_SPATIAL_LOOP_MIN, MSR_BOP_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kHeatExchangerLaneFactor
             hot_stage[idx] = hot[idx] + 0.5 * dt * k2_hot[idx];
@@ -881,6 +970,7 @@ void hx_kernel(
         }
         hx_rhs(N, dx, hot_velocity, cold_velocity, hot_exchange_coeff, cold_exchange_coeff, err, hot_inlet, cold_inlet, hot_stage, cold_stage, k3_hot, k3_cold);
         for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_BOP_SPATIAL_LOOP_MIN, MSR_BOP_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kHeatExchangerLaneFactor
             hot_stage[idx] = hot[idx] + dt * k3_hot[idx];
@@ -889,6 +979,7 @@ void hx_kernel(
         hx_rhs(N, dx, hot_velocity, cold_velocity, hot_exchange_coeff, cold_exchange_coeff, err, hot_inlet, cold_inlet, hot_stage, cold_stage, k4_hot, k4_cold);
 
         for (int idx = 0; idx < N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_BOP_SPATIAL_LOOP_MIN, MSR_BOP_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kHeatExchangerLaneFactor
             hot[idx] += (dt / 6.0) * (k1_hot[idx] + 2.0 * k2_hot[idx] + 2.0 * k3_hot[idx] + k4_hot[idx]);

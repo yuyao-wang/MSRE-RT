@@ -93,9 +93,16 @@ struct HeatExchangerModuleParams {
     double err;
 };
 
+template <int FixedValue>
+int resolve_fixed_value(int runtime_value) {
+#pragma HLS INLINE
+    return FixedValue > 0 ? FixedValue : runtime_value;
+}
+
 void copy_vector_in(int n, const double* src, double dst[kMaxN]) {
 #pragma HLS INLINE
     for (int idx = 0; idx < n; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_GENERIC_SPATIAL_LOOP_MIN, MSR_GENERIC_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
         dst[idx] = src[idx];
     }
@@ -104,6 +111,7 @@ void copy_vector_in(int n, const double* src, double dst[kMaxN]) {
 void copy_vector_out(int n, const double src[kMaxN], double* dst) {
 #pragma HLS INLINE
     for (int idx = 0; idx < n; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_GENERIC_SPATIAL_LOOP_MIN, MSR_GENERIC_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
         dst[idx] = src[idx];
     }
@@ -328,10 +336,15 @@ void store_core_step_state(int n, const StepState& src, CoreStepState* dst) {
     copy_precursor_history(src.precursor_history, dst->precursor_history);
 }
 
-void load_core_step_params(const KernelParams* src, KernelParams& dst) {
+void load_core_step_params(
+    int n,
+    int hardware_substeps,
+    const KernelParams* src,
+    KernelParams& dst
+) {
 #pragma HLS INLINE
-    dst.N = src->N;
-    dst.hardware_substeps = src->hardware_substeps;
+    dst.N = n;
+    dst.hardware_substeps = hardware_substeps;
     dst.inlet_mode = src->inlet_mode;
     dst.use_graphite_axial_conduction = src->use_graphite_axial_conduction;
     dst.precursor_delay_older = src->precursor_delay_older;
@@ -393,6 +406,11 @@ void load_core_step_params(const KernelParams* src, KernelParams& dst) {
     copy_vector_in(dst.N, src->z, dst.z);
 }
 
+void load_core_step_params(const KernelParams* src, KernelParams& dst) {
+#pragma HLS INLINE
+    load_core_step_params(src->N, src->hardware_substeps, src, dst);
+}
+
 void load_bop_step_state(int n, const BopStepState* src, BopStepState& dst) {
 #pragma HLS INLINE
     copy_vector_in(n, src->hx1_hot, dst.hx1_hot);
@@ -409,10 +427,15 @@ void store_bop_step_state(int n, const BopStepState& src, BopStepState* dst) {
     copy_vector_out(n, src.hx2_cold, dst->hx2_cold);
 }
 
-void load_bop_step_params(const KernelParams* src, KernelParams& dst) {
+void load_bop_step_params(
+    int n,
+    int hardware_substeps,
+    const KernelParams* src,
+    KernelParams& dst
+) {
 #pragma HLS INLINE
-    dst.Nx = src->Nx;
-    dst.hardware_substeps = src->hardware_substeps;
+    dst.Nx = n;
+    dst.hardware_substeps = hardware_substeps;
     dst.outer_dt = src->outer_dt;
     dst.err = src->err;
 
@@ -440,6 +463,11 @@ void load_bop_step_params(const KernelParams* src, KernelParams& dst) {
     dst.c_p_sss = src->c_p_sss;
 }
 
+void load_bop_step_params(const KernelParams* src, KernelParams& dst) {
+#pragma HLS INLINE
+    load_bop_step_params(src->Nx, src->hardware_substeps, src, dst);
+}
+
 void thermal_rhs_module(
     const ThermalModuleParams& params,
     const double q_prime[kMaxN],
@@ -460,6 +488,7 @@ void thermal_rhs_module(
 #pragma HLS ARRAY_PARTITION variable=dfuel cyclic factor=kThermalLaneFactor dim=1
 #pragma HLS ARRAY_PARTITION variable=dgraphite cyclic factor=kThermalLaneFactor dim=1
     for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kThermalLaneFactor
         const double fuel_im1 = (idx == 0) ? inlet_temperature : fuel[idx - 1];
@@ -504,6 +533,7 @@ void load_thermal_stage_module(
 #pragma HLS ARRAY_PARTITION variable=fuel_stage cyclic factor=kThermalLaneFactor dim=1
 #pragma HLS ARRAY_PARTITION variable=graphite_stage cyclic factor=kThermalLaneFactor dim=1
     for (int idx = 0; idx < n; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kThermalLaneFactor
         fuel_stage[idx] = fuel[idx] + scale * dfuel[idx];
@@ -519,6 +549,7 @@ void thermal_kernel_module(
 ) {
     const double dt = params.outer_dt / static_cast<double>(params.hardware_substeps);
     for (int substep = 0; substep < params.hardware_substeps; ++substep) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_SUBSTEP_LOOP_MIN, MSR_SUBSTEP_LOOP_MAX)
         double k1_fuel[kMaxN], k2_fuel[kMaxN], k3_fuel[kMaxN], k4_fuel[kMaxN];
         double k1_graphite[kMaxN], k2_graphite[kMaxN], k3_graphite[kMaxN], k4_graphite[kMaxN];
         double fuel_stage[kMaxN], graphite_stage[kMaxN];
@@ -542,6 +573,7 @@ void thermal_kernel_module(
         thermal_rhs_module(params, q_prime, Ts_core_inlet, fuel_stage, graphite_stage, k4_fuel, k4_graphite);
 
         for (int idx = 0; idx < params.N; ++idx) {
+MSR_HLS_LOOP_TRIPCOUNT(MSR_CORE_SPATIAL_LOOP_MIN, MSR_CORE_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
 #pragma HLS UNROLL factor=kThermalLaneFactor
             state.fuel[idx] += (dt / 6.0) * (k1_fuel[idx] + 2.0 * k2_fuel[idx] + 2.0 * k3_fuel[idx] + k4_fuel[idx]);
@@ -796,7 +828,8 @@ extern "C" void msr_hx2_bench(
     store_heat_exchanger_module_state(local_params.n, local_state, state->hx2_hot, state->hx2_cold);
 }
 
-extern "C" void core_step_kernel(
+template <int FixedN, int FixedSubsteps>
+void core_step_kernel_impl(
     CoreStepState* state,
     const KernelParams* params,
     double Ts_core_inlet,
@@ -804,24 +837,17 @@ extern "C" void core_step_kernel(
     double external_reactivity,
     CoreStepBoundary* boundary_out
 ) {
-#pragma HLS INTERFACE m_axi port=state offset=slave bundle=gmem0
-#pragma HLS INTERFACE m_axi port=params offset=slave bundle=gmem1
-#pragma HLS INTERFACE m_axi port=boundary_out offset=slave bundle=gmem2
-#pragma HLS INTERFACE s_axilite port=state bundle=control
-#pragma HLS INTERFACE s_axilite port=params bundle=control
-#pragma HLS INTERFACE s_axilite port=Ts_core_inlet bundle=control
-#pragma HLS INTERFACE s_axilite port=rod_position bundle=control
-#pragma HLS INTERFACE s_axilite port=external_reactivity bundle=control
-#pragma HLS INTERFACE s_axilite port=boundary_out bundle=control
-#pragma HLS INTERFACE s_axilite port=return bundle=control
-
     StepState local_state{};
     KernelParams local_params{};
     CrossSections local_xs{};
     double local_q_prime[kMaxN];
+    const int core_n = resolve_fixed_value<FixedN>(params->N);
+    const int hardware_substeps = resolve_fixed_value<FixedSubsteps>(params->hardware_substeps);
+    const int core_mid = core_n / 2;
+    const int core_last = core_n - 1;
 
-    load_core_step_params(params, local_params);
-    load_core_step_state(local_params.N, state, local_state);
+    load_core_step_params(core_n, hardware_substeps, params, local_params);
+    load_core_step_state(core_n, state, local_state);
 
 #pragma HLS ARRAY_PARTITION variable=local_state.C complete dim=1
 #pragma HLS ARRAY_PARTITION variable=local_state.C cyclic factor=kNeutronicsLaneFactor dim=2
@@ -889,19 +915,133 @@ extern "C" void core_step_kernel(
     msr_vitis::neutronics_kernel(local_params, local_xs, local_state, local_q_prime);
     msr_vitis::thermal_kernel(local_params, local_q_prime, Ts_core_inlet, local_state);
 
-    const double Ts_core_outlet = local_state.fuel[local_params.N - 1];
-    const double phi_mid = local_state.phi1[local_params.N / 2] + local_state.phi2[local_params.N / 2];
-    const double power = msr_vitis::trapz_uniform(local_q_prime, local_params.z, local_params.N);
+    const double Ts_core_outlet = local_state.fuel[core_last];
+    const double phi_mid = local_state.phi1[core_mid] + local_state.phi2[core_mid];
+    const double power = msr_vitis::trapz_uniform(local_q_prime, local_params.z, core_n);
 
-    store_core_step_state(local_params.N, local_state, state);
+    store_core_step_state(core_n, local_state, state);
 
     boundary_out->rho = rho;
     boundary_out->power = power;
     boundary_out->phi_mid = phi_mid;
-    boundary_out->fuel_mid = local_state.fuel[local_params.N / 2];
-    boundary_out->graphite_mid = local_state.graphite[local_params.N / 2];
+    boundary_out->fuel_mid = local_state.fuel[core_mid];
+    boundary_out->graphite_mid = local_state.graphite[core_mid];
     boundary_out->Ts_core_inlet = Ts_core_inlet;
     boundary_out->Ts_core_outlet = Ts_core_outlet;
+}
+
+extern "C" void core_step_kernel(
+    CoreStepState* state,
+    const KernelParams* params,
+    double Ts_core_inlet,
+    double rod_position,
+    double external_reactivity,
+    CoreStepBoundary* boundary_out
+) {
+#pragma HLS INTERFACE m_axi port=state offset=slave bundle=gmem0
+#pragma HLS INTERFACE m_axi port=params offset=slave bundle=gmem1
+#pragma HLS INTERFACE m_axi port=boundary_out offset=slave bundle=gmem2
+#pragma HLS INTERFACE s_axilite port=state bundle=control
+#pragma HLS INTERFACE s_axilite port=params bundle=control
+#pragma HLS INTERFACE s_axilite port=Ts_core_inlet bundle=control
+#pragma HLS INTERFACE s_axilite port=rod_position bundle=control
+#pragma HLS INTERFACE s_axilite port=external_reactivity bundle=control
+#pragma HLS INTERFACE s_axilite port=boundary_out bundle=control
+#pragma HLS INTERFACE s_axilite port=return bundle=control
+
+    core_step_kernel_impl<0, 0>(state, params, Ts_core_inlet, rod_position, external_reactivity, boundary_out);
+}
+
+extern "C" void core_step_kernel_n80_s1(
+    CoreStepState* state,
+    const KernelParams* params,
+    double Ts_core_inlet,
+    double rod_position,
+    double external_reactivity,
+    CoreStepBoundary* boundary_out
+) {
+#pragma HLS INTERFACE m_axi port=state offset=slave bundle=gmem0
+#pragma HLS INTERFACE m_axi port=params offset=slave bundle=gmem1
+#pragma HLS INTERFACE m_axi port=boundary_out offset=slave bundle=gmem2
+#pragma HLS INTERFACE s_axilite port=state bundle=control
+#pragma HLS INTERFACE s_axilite port=params bundle=control
+#pragma HLS INTERFACE s_axilite port=Ts_core_inlet bundle=control
+#pragma HLS INTERFACE s_axilite port=rod_position bundle=control
+#pragma HLS INTERFACE s_axilite port=external_reactivity bundle=control
+#pragma HLS INTERFACE s_axilite port=boundary_out bundle=control
+#pragma HLS INTERFACE s_axilite port=return bundle=control
+
+    core_step_kernel_impl<80, 1>(state, params, Ts_core_inlet, rod_position, external_reactivity, boundary_out);
+}
+
+template <int FixedNx, int FixedSubsteps>
+void bop_step_kernel_impl(
+    BopStepState* state,
+    const KernelParams* params,
+    double Ts_HX1_L,
+    double Tss_HX1_0,
+    double Tss_HX2_L,
+    double Tsss_HX2_0,
+    BopStepBoundary* boundary_out
+) {
+    BopStepState local_state{};
+    KernelParams local_params{};
+    const int bop_n = resolve_fixed_value<FixedNx>(params->Nx);
+    const int hardware_substeps = resolve_fixed_value<FixedSubsteps>(params->hardware_substeps);
+    const int bop_last = bop_n - 1;
+
+    load_bop_step_params(bop_n, hardware_substeps, params, local_params);
+    load_bop_step_state(bop_n, state, local_state);
+
+#pragma HLS ARRAY_PARTITION variable=local_state.hx1_hot cyclic factor=kHeatExchangerLaneFactor dim=1
+#pragma HLS ARRAY_PARTITION variable=local_state.hx1_cold cyclic factor=kHeatExchangerLaneFactor dim=1
+#pragma HLS ARRAY_PARTITION variable=local_state.hx2_hot cyclic factor=kHeatExchangerLaneFactor dim=1
+#pragma HLS ARRAY_PARTITION variable=local_state.hx2_cold cyclic factor=kHeatExchangerLaneFactor dim=1
+
+    msr_vitis::hx_kernel(
+        bop_n,
+        local_params.hardware_substeps,
+        local_params.outer_dt,
+        local_params.hx1_dx,
+        local_params.hx1_hot_velocity,
+        local_params.hx1_cold_velocity,
+        local_params.hx1_hot_exchange_coeff,
+        local_params.hx1_cold_exchange_coeff,
+        local_params.err,
+        Ts_HX1_L,
+        Tss_HX1_0,
+        local_state.hx1_hot,
+        local_state.hx1_cold
+    );
+    const double Ts_HX1_0 = local_state.hx1_hot[0];
+    const double Tss_HX1_L = local_state.hx1_cold[bop_last];
+
+    msr_vitis::hx_kernel(
+        bop_n,
+        local_params.hardware_substeps,
+        local_params.outer_dt,
+        local_params.hx2_dx,
+        local_params.hx2_hot_velocity,
+        local_params.hx2_cold_velocity,
+        local_params.hx2_hot_exchange_coeff,
+        local_params.hx2_cold_exchange_coeff,
+        local_params.err,
+        Tss_HX2_L,
+        Tsss_HX2_0,
+        local_state.hx2_hot,
+        local_state.hx2_cold
+    );
+    const double Tss_HX2_0 = local_state.hx2_hot[0];
+    const double Tsss_HX2_L = local_state.hx2_cold[bop_last];
+    const double Tsss_pp_0 = msr_vitis::brayton_kernel(local_params, Tsss_HX2_L);
+
+    store_bop_step_state(bop_n, local_state, state);
+
+    boundary_out->Ts_HX1_0 = Ts_HX1_0;
+    boundary_out->Tss_HX1_L = Tss_HX1_L;
+    boundary_out->Tss_HX2_0 = Tss_HX2_0;
+    boundary_out->Tsss_HX2_L = Tsss_HX2_L;
+    boundary_out->Tsss_pp_0 = Tsss_pp_0;
 }
 
 extern "C" void bop_step_kernel(
@@ -925,61 +1065,31 @@ extern "C" void bop_step_kernel(
 #pragma HLS INTERFACE s_axilite port=boundary_out bundle=control
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
-    BopStepState local_state{};
-    KernelParams local_params{};
+    bop_step_kernel_impl<0, 0>(state, params, Ts_HX1_L, Tss_HX1_0, Tss_HX2_L, Tsss_HX2_0, boundary_out);
+}
 
-    load_bop_step_params(params, local_params);
-    load_bop_step_state(local_params.Nx, state, local_state);
+extern "C" void bop_step_kernel_n80_s1(
+    BopStepState* state,
+    const KernelParams* params,
+    double Ts_HX1_L,
+    double Tss_HX1_0,
+    double Tss_HX2_L,
+    double Tsss_HX2_0,
+    BopStepBoundary* boundary_out
+) {
+#pragma HLS INTERFACE m_axi port=state offset=slave bundle=gmem0
+#pragma HLS INTERFACE m_axi port=params offset=slave bundle=gmem1
+#pragma HLS INTERFACE m_axi port=boundary_out offset=slave bundle=gmem2
+#pragma HLS INTERFACE s_axilite port=state bundle=control
+#pragma HLS INTERFACE s_axilite port=params bundle=control
+#pragma HLS INTERFACE s_axilite port=Ts_HX1_L bundle=control
+#pragma HLS INTERFACE s_axilite port=Tss_HX1_0 bundle=control
+#pragma HLS INTERFACE s_axilite port=Tss_HX2_L bundle=control
+#pragma HLS INTERFACE s_axilite port=Tsss_HX2_0 bundle=control
+#pragma HLS INTERFACE s_axilite port=boundary_out bundle=control
+#pragma HLS INTERFACE s_axilite port=return bundle=control
 
-#pragma HLS ARRAY_PARTITION variable=local_state.hx1_hot cyclic factor=kHeatExchangerLaneFactor dim=1
-#pragma HLS ARRAY_PARTITION variable=local_state.hx1_cold cyclic factor=kHeatExchangerLaneFactor dim=1
-#pragma HLS ARRAY_PARTITION variable=local_state.hx2_hot cyclic factor=kHeatExchangerLaneFactor dim=1
-#pragma HLS ARRAY_PARTITION variable=local_state.hx2_cold cyclic factor=kHeatExchangerLaneFactor dim=1
-
-    msr_vitis::hx_kernel(
-        local_params.Nx,
-        local_params.hardware_substeps,
-        local_params.outer_dt,
-        local_params.hx1_dx,
-        local_params.hx1_hot_velocity,
-        local_params.hx1_cold_velocity,
-        local_params.hx1_hot_exchange_coeff,
-        local_params.hx1_cold_exchange_coeff,
-        local_params.err,
-        Ts_HX1_L,
-        Tss_HX1_0,
-        local_state.hx1_hot,
-        local_state.hx1_cold
-    );
-    const double Ts_HX1_0 = local_state.hx1_hot[0];
-    const double Tss_HX1_L = local_state.hx1_cold[local_params.Nx - 1];
-
-    msr_vitis::hx_kernel(
-        local_params.Nx,
-        local_params.hardware_substeps,
-        local_params.outer_dt,
-        local_params.hx2_dx,
-        local_params.hx2_hot_velocity,
-        local_params.hx2_cold_velocity,
-        local_params.hx2_hot_exchange_coeff,
-        local_params.hx2_cold_exchange_coeff,
-        local_params.err,
-        Tss_HX2_L,
-        Tsss_HX2_0,
-        local_state.hx2_hot,
-        local_state.hx2_cold
-    );
-    const double Tss_HX2_0 = local_state.hx2_hot[0];
-    const double Tsss_HX2_L = local_state.hx2_cold[local_params.Nx - 1];
-    const double Tsss_pp_0 = msr_vitis::brayton_kernel(local_params, Tsss_HX2_L);
-
-    store_bop_step_state(local_params.Nx, local_state, state);
-
-    boundary_out->Ts_HX1_0 = Ts_HX1_0;
-    boundary_out->Tss_HX1_L = Tss_HX1_L;
-    boundary_out->Tss_HX2_0 = Tss_HX2_0;
-    boundary_out->Tsss_HX2_L = Tsss_HX2_L;
-    boundary_out->Tsss_pp_0 = Tsss_pp_0;
+    bop_step_kernel_impl<80, 1>(state, params, Ts_HX1_L, Tss_HX1_0, Tss_HX2_L, Tsss_HX2_0, boundary_out);
 }
 
 extern "C" void msr_power_reduction_bench(
