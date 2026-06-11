@@ -12,6 +12,8 @@ cpp/build/
 cpp/results_50/
 cpp/results_smoke/
 vitis/build/
+vitis/hls_work/
+vitis/hls_module_work/
 
 paper_writing/
 paper_outputs/

@@ -7,3 +7,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(msr_vitis_kernel OBJECT msr_vitis_kernel.cpp)
+add_library(msr_vitis_module_tops OBJECT msr_vitis_module_tops.cpp)

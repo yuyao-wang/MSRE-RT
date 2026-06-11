@@ -32,6 +32,30 @@ These are now compile-time tunables, so exploratory HLS runs can lower lane fact
 
 The version-controlled HLS script for the next exploratory run is `vitis/hls_synth_10ns.tcl`, which sets the clock target to `10 ns` (`100 MHz`). The current `5 ns` target is still treated as a stretch goal, not the default turnaround configuration.
 
+## Module HLS Benchmarks
+
+The repository now also carries a module-level HLS benchmark source in `vitis/msr_vitis_module_tops.cpp`.
+
+Those tops are intentionally separate from `msr_step_kernel`:
+
+- `msr_cross_sections_bench`
+- `msr_neutronics_bench`
+- `msr_thermal_bench`
+- `msr_hx1_bench`
+- `msr_hx2_bench`
+- `msr_power_reduction_bench`
+
+Their purpose is fast iterative synthesis, not final integration. Each top isolates one compute block while keeping the same inner implementation used by the monolithic step kernel.
+
+The corresponding TCL entry points live under `vitis/hls_modules/` and write into `vitis/hls_module_work/`, so they do not collide with the existing monolithic `vitis/hls_work/` runs. That separation is deliberate: module experiments can be launched, deleted, and compared without perturbing the long-running full-step synthesis jobs.
+
+Recommended use:
+
+- start with `hls_neutronics_10ns.tcl`, because neutronics is still the dominant critical-path candidate
+- use `hls_cross_sections_10ns.tcl` and `hls_power_reduction_10ns.tcl` to iterate on reduction and feedback logic quickly
+- treat `hls_hx1_10ns.tcl` and `hls_hx2_10ns.tcl` as duplicated transport kernels whose reports should stay close
+- only return to the full `msr_step_kernel` synthesis after a module-level change has already shown an acceptable latency / resource tradeoff
+
 ## Reduction Design
 
 The two timing-sensitive reductions are:
