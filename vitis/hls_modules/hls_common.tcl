@@ -14,16 +14,17 @@ if {![info exists part_name]} {
     set part_name xcu200-fsgd2104-2-e
 }
 
-if {![info exists source_file]} {
-    set source_file msr_vitis_module_tops.cpp
-}
-
 if {![info exists cflags]} {
     set cflags {-std=c++17}
 }
 
 set script_dir [file normalize [file dirname [info script]]]
 set vitis_dir [file normalize [file join $script_dir ..]]
+if {![info exists source_file]} {
+    set source_file [file join $vitis_dir msr_vitis_module_tops.cpp]
+} elseif {[file pathtype $source_file] ne "absolute"} {
+    set source_file [file join $vitis_dir $source_file]
+}
 cd $vitis_dir
 
 open_project -reset [file join hls_module_work $project_name]
