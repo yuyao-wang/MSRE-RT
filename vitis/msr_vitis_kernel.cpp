@@ -14,7 +14,6 @@ constexpr int kCrossSectionLaneFactor = 4;
 constexpr int kNeutronicsLaneFactor = 4;
 constexpr int kThermalLaneFactor = 4;
 constexpr int kHeatExchangerLaneFactor = 4;
-constexpr int kReductionBlockSize = 8;
 constexpr int kReductionAccumulatorSlots = 8;
 
 enum InletMode : int {
@@ -232,23 +231,21 @@ double trapz_uniform(const double* y, const double* x, int N) {
         partial[lane] = 0.0;
     }
 
-    const int segments = (N > 0) ? (N - 1) : 0;
-    const int blocks = (segments + kReductionBlockSize - 1) / kReductionBlockSize;
-    for (int block = 0; block < blocks; ++block) {
+    if (N <= 1) {
+        return 0.0;
+    }
+
+    double prev_y = y[0];
+    double prev_x = x[0];
+    for (int idx = 1; idx < N; ++idx) {
 #pragma HLS PIPELINE II=1
-        double block_terms[kReductionBlockSize];
-#pragma HLS ARRAY_PARTITION variable=block_terms complete dim=1
-
-        for (int lane = 0; lane < kReductionBlockSize; ++lane) {
-#pragma HLS UNROLL
-            const int idx = block * kReductionBlockSize + lane;
-            block_terms[lane] = (idx < segments)
-                ? 0.5 * (y[idx] + y[idx + 1]) * (x[idx + 1] - x[idx])
-                : 0.0;
-        }
-
-        const int slot = block & (kReductionAccumulatorSlots - 1);
-        partial[slot] += reduce_sum_tree_8(block_terms);
+        const double curr_y = y[idx];
+        const double curr_x = x[idx];
+        const double term = 0.5 * (prev_y + curr_y) * (curr_x - prev_x);
+        const int slot = (idx - 1) & (kReductionAccumulatorSlots - 1);
+        partial[slot] += term;
+        prev_y = curr_y;
+        prev_x = curr_x;
     }
     return reduce_sum_tree_8(partial);
 }

@@ -160,6 +160,7 @@ Current implementation:
 - neutronics axial updates: partial unroll by `4`
 - thermal axial updates: partial unroll by `4`
 - HX1/HX2 axial updates: partial unroll by `4`
+- trapezoid reductions: sliding-window accumulation with `8` rotating partial sums
 
 Reason:
 

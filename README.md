@@ -28,6 +28,8 @@ Current lane factors in `vitis/msr_vitis_kernel.cpp`:
 - thermal: `4`
 - heat exchanger: `4`
 
+The version-controlled HLS script for the next exploratory run is `vitis/hls_synth_10ns.tcl`, which sets the clock target to `10 ns` (`100 MHz`). The current `5 ns` target is still treated as a stretch goal, not the default turnaround configuration.
+
 ## Reduction Design
 
 The two timing-sensitive reductions are:
@@ -35,19 +37,20 @@ The two timing-sensitive reductions are:
 - `estimate_global_rho`, which integrates production and absorption terms
 - diagnostic `power`, which integrates `q_prime`
 
-Both now use the same blocked trapezoid reduction path:
+Both now use the same sliding-window trapezoid reduction path:
 
-1. generate trapezoid contributions in blocks of `8`
-2. tree-reduce each block locally
-3. accumulate block sums into `8` independent partial accumulators
+1. stream through `x[:]` and `y[:]` once
+2. reuse the previous sample as a register-held window
+3. accumulate each trapezoid contribution into one of `8` rotating partial accumulators
 4. tree-reduce the partial accumulators into the final scalar
 
-This replaces a single scalar recurrence with multiple shorter recurrences. In HLS terms, that reduces pressure on the double-precision adder loop-carried dependency and gives the scheduler more room to keep `II=1` while improving the achievable clock.
+This replaces both the original scalar recurrence and the later wide blocked-read version. In HLS terms, the new structure reduces read pressure on the source arrays while still shortening the accumulation dependency chain.
 
 The design intent is:
 
-- block reduction to limit serial accumulation depth
-- tree reduction to shorten the adder chain inside each combine step
+- sliding-window reads to cut the number of array loads per iteration
+- rotating partial sums to limit serial accumulation depth
+- tree reduction to shorten the final adder chain
 - shared reduction logic so `power` and `rho` do not diverge structurally
 
 ## Parallelization Notes
@@ -68,3 +71,4 @@ The main same-step synchronization boundaries remain:
 That means most coarse physics kernels remain serial inside one outer step, while the main latency reduction path comes from aggressive intra-kernel parallelism and future task-level overlap across step boundaries.
 
 For the longer design discussion, see `docs/cpp_vitis_conversion.md`.
+For the staged precision roadmap, see `docs/mixed_precision_plan.md`.
