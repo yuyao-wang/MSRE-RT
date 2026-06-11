@@ -4,8 +4,12 @@ namespace {
 
 using msr_vitis::CrossSections;
 using msr_vitis::KernelParams;
+using msr_vitis::PrecursorHistory;
 using msr_vitis::StepState;
 
+constexpr int kEnergyGroups = msr_vitis::kEnergyGroups;
+constexpr int kPrecursorGroups = msr_vitis::kPrecursorGroups;
+constexpr int kMaxLoopHistory = msr_vitis::kMaxLoopHistory;
 constexpr int kMaxN = msr_vitis::kMaxN;
 constexpr int kCrossSectionLaneFactor = msr_vitis::kCrossSectionLaneFactor;
 constexpr int kNeutronicsLaneFactor = msr_vitis::kNeutronicsLaneFactor;
@@ -38,6 +42,23 @@ struct ThermalModuleParams {
     double err;
 };
 
+struct HeatExchangerModuleState {
+    double hot[kMaxN];
+    double cold[kMaxN];
+};
+
+struct HeatExchangerModuleParams {
+    int n;
+    int hardware_substeps;
+    double outer_dt;
+    double dx;
+    double hot_velocity;
+    double cold_velocity;
+    double hot_exchange_coeff;
+    double cold_exchange_coeff;
+    double err;
+};
+
 void copy_vector_in(int n, const double* src, double dst[kMaxN]) {
 #pragma HLS INLINE
     for (int idx = 0; idx < n; ++idx) {
@@ -52,6 +73,117 @@ void copy_vector_out(int n, const double src[kMaxN], double* dst) {
 #pragma HLS PIPELINE II=1
         dst[idx] = src[idx];
     }
+}
+
+void copy_precursor_vector_in(
+    int n,
+    const double src[kPrecursorGroups][kMaxN],
+    double dst[kPrecursorGroups][kMaxN]
+) {
+#pragma HLS INLINE
+    for (int group = 0; group < kPrecursorGroups; ++group) {
+#pragma HLS UNROLL
+        copy_vector_in(n, src[group], dst[group]);
+    }
+}
+
+void copy_energy_vector_in(
+    int n,
+    const double src[kEnergyGroups][kMaxN],
+    double dst[kEnergyGroups][kMaxN]
+) {
+#pragma HLS INLINE
+    for (int group = 0; group < kEnergyGroups; ++group) {
+#pragma HLS UNROLL
+        copy_vector_in(n, src[group], dst[group]);
+    }
+}
+
+void copy_precursor_scalars(
+    const double src[kPrecursorGroups],
+    double dst[kPrecursorGroups]
+) {
+#pragma HLS INLINE
+    for (int group = 0; group < kPrecursorGroups; ++group) {
+#pragma HLS UNROLL
+        dst[group] = src[group];
+    }
+}
+
+void copy_energy_scalars(
+    const double src[kEnergyGroups],
+    double dst[kEnergyGroups]
+) {
+#pragma HLS INLINE
+    for (int group = 0; group < kEnergyGroups; ++group) {
+#pragma HLS UNROLL
+        dst[group] = src[group];
+    }
+}
+
+void copy_precursor_history(
+    const PrecursorHistory& src,
+    PrecursorHistory& dst
+) {
+#pragma HLS INLINE
+    for (int group = 0; group < kPrecursorGroups; ++group) {
+        for (int idx = 0; idx < kMaxLoopHistory; ++idx) {
+#pragma HLS PIPELINE II=1
+            dst.outlet_history[group][idx] = src.outlet_history[group][idx];
+        }
+        dst.last_outlet[group] = src.last_outlet[group];
+    }
+    dst.write_index = src.write_index;
+    dst.valid_count = src.valid_count;
+}
+
+void load_neutronics_module_state(int n, const StepState* src, StepState& dst) {
+#pragma HLS INLINE
+    copy_vector_in(n, src->phi1, dst.phi1);
+    copy_vector_in(n, src->phi2, dst.phi2);
+    copy_precursor_vector_in(n, src->C, dst.C);
+    copy_precursor_history(src->precursor_history, dst.precursor_history);
+}
+
+void store_neutronics_module_state(int n, const StepState& src, StepState* dst) {
+#pragma HLS INLINE
+    copy_vector_out(n, src.phi1, dst->phi1);
+    copy_vector_out(n, src.phi2, dst->phi2);
+    copy_precursor_vector_in(n, src.C, dst->C);
+    copy_precursor_history(src.precursor_history, dst->precursor_history);
+}
+
+void load_neutronics_module_params(const KernelParams* src, KernelParams& dst) {
+#pragma HLS INLINE
+    dst.N = src->N;
+    dst.hardware_substeps = src->hardware_substeps;
+    dst.inlet_mode = src->inlet_mode;
+    dst.precursor_delay_older = src->precursor_delay_older;
+    dst.precursor_delay_newer = src->precursor_delay_newer;
+    dst.precursor_interp_newer = src->precursor_interp_newer;
+    dst.dz = src->dz;
+    dst.outer_dt = src->outer_dt;
+    dst.u_precursor = src->u_precursor;
+    dst.power_scale = src->power_scale;
+    dst.Beta = src->Beta;
+    dst.precursor_loop_efficiency = src->precursor_loop_efficiency;
+    dst.precursor_loop_tau = src->precursor_loop_tau;
+    copy_precursor_scalars(src->beta, dst.beta);
+    copy_precursor_scalars(src->lambda_i, dst.lambda_i);
+    copy_energy_scalars(src->neutron_velocity, dst.neutron_velocity);
+    copy_energy_scalars(src->chi_p, dst.chi_p);
+    copy_energy_scalars(src->chi_d, dst.chi_d);
+    copy_energy_scalars(src->d_e, dst.d_e);
+    copy_vector_in(dst.N, src->A_f, dst.A_f);
+}
+
+void load_neutronics_cross_sections(int n, const CrossSections* src, CrossSections& dst) {
+#pragma HLS INLINE
+    copy_energy_vector_in(n, src->D, dst.D);
+    copy_vector_in(n, src->sigma_s12, dst.sigma_s12);
+    copy_energy_vector_in(n, src->nu_sigma_f, dst.nu_sigma_f);
+    copy_energy_vector_in(n, src->sigma_f, dst.sigma_f);
+    copy_energy_vector_in(n, src->sigma_r, dst.sigma_r);
 }
 
 void load_thermal_module_state(int n, const StepState* src, ThermalModuleState& dst) {
@@ -86,6 +218,58 @@ ThermalModuleParams load_thermal_module_params(const KernelParams* src) {
     dst.k_gr = src->k_gr;
     dst.eta_s = src->eta_s;
     dst.eta_gr = src->eta_gr;
+    dst.err = src->err;
+    return dst;
+}
+
+void load_heat_exchanger_module_state(
+    int n,
+    const double* hot_src,
+    const double* cold_src,
+    HeatExchangerModuleState& dst
+) {
+#pragma HLS INLINE
+    copy_vector_in(n, hot_src, dst.hot);
+    copy_vector_in(n, cold_src, dst.cold);
+}
+
+void store_heat_exchanger_module_state(
+    int n,
+    const HeatExchangerModuleState& src,
+    double* hot_dst,
+    double* cold_dst
+) {
+#pragma HLS INLINE
+    copy_vector_out(n, src.hot, hot_dst);
+    copy_vector_out(n, src.cold, cold_dst);
+}
+
+HeatExchangerModuleParams load_hx1_module_params(const KernelParams* src) {
+#pragma HLS INLINE
+    HeatExchangerModuleParams dst{};
+    dst.n = src->Nx;
+    dst.hardware_substeps = src->hardware_substeps;
+    dst.outer_dt = src->outer_dt;
+    dst.dx = src->hx1_dx;
+    dst.hot_velocity = src->hx1_hot_velocity;
+    dst.cold_velocity = src->hx1_cold_velocity;
+    dst.hot_exchange_coeff = src->hx1_hot_exchange_coeff;
+    dst.cold_exchange_coeff = src->hx1_cold_exchange_coeff;
+    dst.err = src->err;
+    return dst;
+}
+
+HeatExchangerModuleParams load_hx2_module_params(const KernelParams* src) {
+#pragma HLS INLINE
+    HeatExchangerModuleParams dst{};
+    dst.n = src->Nx;
+    dst.hardware_substeps = src->hardware_substeps;
+    dst.outer_dt = src->outer_dt;
+    dst.dx = src->hx2_dx;
+    dst.hot_velocity = src->hx2_hot_velocity;
+    dst.cold_velocity = src->hx2_cold_velocity;
+    dst.hot_exchange_coeff = src->hx2_hot_exchange_coeff;
+    dst.cold_exchange_coeff = src->hx2_cold_exchange_coeff;
     dst.err = src->err;
     return dst;
 }
@@ -297,10 +481,14 @@ extern "C" void msr_neutronics_bench(
 #pragma HLS INTERFACE s_axilite port=q_prime_out bundle=control
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
-    StepState local_state = *state;
-    const KernelParams local_params = *params;
-    CrossSections local_xs = *xs_in;
+    StepState local_state{};
+    KernelParams local_params{};
+    CrossSections local_xs{};
     double local_q_prime[kMaxN];
+
+    load_neutronics_module_params(params, local_params);
+    load_neutronics_module_state(local_params.N, state, local_state);
+    load_neutronics_cross_sections(local_params.N, xs_in, local_xs);
 
 #pragma HLS ARRAY_PARTITION variable=local_state.C complete dim=1
 #pragma HLS ARRAY_PARTITION variable=local_state.C cyclic factor=kNeutronicsLaneFactor dim=2
@@ -316,8 +504,6 @@ extern "C" void msr_neutronics_bench(
 
 #pragma HLS ARRAY_PARTITION variable=local_xs.D complete dim=1
 #pragma HLS ARRAY_PARTITION variable=local_xs.D cyclic factor=kNeutronicsLaneFactor dim=2
-#pragma HLS ARRAY_PARTITION variable=local_xs.sigma_a complete dim=1
-#pragma HLS ARRAY_PARTITION variable=local_xs.sigma_a cyclic factor=kNeutronicsLaneFactor dim=2
 #pragma HLS ARRAY_PARTITION variable=local_xs.nu_sigma_f complete dim=1
 #pragma HLS ARRAY_PARTITION variable=local_xs.nu_sigma_f cyclic factor=kNeutronicsLaneFactor dim=2
 #pragma HLS ARRAY_PARTITION variable=local_xs.sigma_f complete dim=1
@@ -329,7 +515,7 @@ extern "C" void msr_neutronics_bench(
 
     msr_vitis::neutronics_kernel(local_params, local_xs, local_state, local_q_prime);
 
-    *state = local_state;
+    store_neutronics_module_state(local_params.N, local_state, state);
     copy_vector_out(local_params.N, local_q_prime, q_prime_out);
 }
 
@@ -376,29 +562,31 @@ extern "C" void msr_hx1_bench(
 #pragma HLS INTERFACE s_axilite port=cold_inlet bundle=control
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
-    StepState local_state = *state;
-    const KernelParams local_params = *params;
+    const HeatExchangerModuleParams local_params = load_hx1_module_params(params);
+    HeatExchangerModuleState local_state{};
 
-#pragma HLS ARRAY_PARTITION variable=local_state.hx1_hot cyclic factor=kHeatExchangerLaneFactor dim=1
-#pragma HLS ARRAY_PARTITION variable=local_state.hx1_cold cyclic factor=kHeatExchangerLaneFactor dim=1
+    load_heat_exchanger_module_state(local_params.n, state->hx1_hot, state->hx1_cold, local_state);
+
+#pragma HLS ARRAY_PARTITION variable=local_state.hot cyclic factor=kHeatExchangerLaneFactor dim=1
+#pragma HLS ARRAY_PARTITION variable=local_state.cold cyclic factor=kHeatExchangerLaneFactor dim=1
 
     msr_vitis::hx_kernel(
-        local_params.Nx,
+        local_params.n,
         local_params.hardware_substeps,
         local_params.outer_dt,
-        local_params.hx1_dx,
-        local_params.hx1_hot_velocity,
-        local_params.hx1_cold_velocity,
-        local_params.hx1_hot_exchange_coeff,
-        local_params.hx1_cold_exchange_coeff,
+        local_params.dx,
+        local_params.hot_velocity,
+        local_params.cold_velocity,
+        local_params.hot_exchange_coeff,
+        local_params.cold_exchange_coeff,
         local_params.err,
         hot_inlet,
         cold_inlet,
-        local_state.hx1_hot,
-        local_state.hx1_cold
+        local_state.hot,
+        local_state.cold
     );
 
-    *state = local_state;
+    store_heat_exchanger_module_state(local_params.n, local_state, state->hx1_hot, state->hx1_cold);
 }
 
 extern "C" void msr_hx2_bench(
@@ -415,29 +603,31 @@ extern "C" void msr_hx2_bench(
 #pragma HLS INTERFACE s_axilite port=cold_inlet bundle=control
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
-    StepState local_state = *state;
-    const KernelParams local_params = *params;
+    const HeatExchangerModuleParams local_params = load_hx2_module_params(params);
+    HeatExchangerModuleState local_state{};
 
-#pragma HLS ARRAY_PARTITION variable=local_state.hx2_hot cyclic factor=kHeatExchangerLaneFactor dim=1
-#pragma HLS ARRAY_PARTITION variable=local_state.hx2_cold cyclic factor=kHeatExchangerLaneFactor dim=1
+    load_heat_exchanger_module_state(local_params.n, state->hx2_hot, state->hx2_cold, local_state);
+
+#pragma HLS ARRAY_PARTITION variable=local_state.hot cyclic factor=kHeatExchangerLaneFactor dim=1
+#pragma HLS ARRAY_PARTITION variable=local_state.cold cyclic factor=kHeatExchangerLaneFactor dim=1
 
     msr_vitis::hx_kernel(
-        local_params.Nx,
+        local_params.n,
         local_params.hardware_substeps,
         local_params.outer_dt,
-        local_params.hx2_dx,
-        local_params.hx2_hot_velocity,
-        local_params.hx2_cold_velocity,
-        local_params.hx2_hot_exchange_coeff,
-        local_params.hx2_cold_exchange_coeff,
+        local_params.dx,
+        local_params.hot_velocity,
+        local_params.cold_velocity,
+        local_params.hot_exchange_coeff,
+        local_params.cold_exchange_coeff,
         local_params.err,
         hot_inlet,
         cold_inlet,
-        local_state.hx2_hot,
-        local_state.hx2_cold
+        local_state.hot,
+        local_state.cold
     );
 
-    *state = local_state;
+    store_heat_exchanger_module_state(local_params.n, local_state, state->hx2_hot, state->hx2_cold);
 }
 
 extern "C" void msr_power_reduction_bench(
