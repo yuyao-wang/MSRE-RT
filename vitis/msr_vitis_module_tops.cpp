@@ -837,9 +837,9 @@ void core_step_kernel_impl(
     double external_reactivity,
     CoreStepBoundary* boundary_out
 ) {
-    StepState local_state{};
-    KernelParams local_params{};
-    CrossSections local_xs{};
+    StepState local_state;
+    KernelParams local_params;
+    CrossSections local_xs;
     double local_q_prime[kMaxN];
     const int core_n = resolve_fixed_value<FixedN>(params->N);
     const int hardware_substeps = resolve_fixed_value<FixedSubsteps>(params->hardware_substeps);
@@ -984,8 +984,8 @@ void bop_step_kernel_impl(
     double Tsss_HX2_0,
     BopStepBoundary* boundary_out
 ) {
-    BopStepState local_state{};
-    KernelParams local_params{};
+    BopStepState local_state;
+    KernelParams local_params;
     const int bop_n = resolve_fixed_value<FixedNx>(params->Nx);
     const int hardware_substeps = resolve_fixed_value<FixedSubsteps>(params->hardware_substeps);
     const int bop_last = bop_n - 1;
