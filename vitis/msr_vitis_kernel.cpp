@@ -320,7 +320,7 @@ double trapz_uniform(const double* y, const double* x, int N) {
     double prev_y = y[0];
     double prev_x = x[0];
     for (int idx = 1; idx < N; ++idx) {
-MSR_HLS_LOOP_TRIPCOUNT(MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MIN, MSR_GENERIC_SPATIAL_MINUS_ONE_LOOP_MAX)
+MSR_HLS_LOOP_TRIPCOUNT(MSR_GENERIC_SPATIAL_LOOP_MIN, MSR_GENERIC_SPATIAL_LOOP_MAX)
 #pragma HLS PIPELINE II=1
         const double curr_y = y[idx];
         const double curr_x = x[idx];
