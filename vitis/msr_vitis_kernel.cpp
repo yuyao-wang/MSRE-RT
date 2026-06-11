@@ -5,15 +5,31 @@
 
 namespace msr_vitis {
 
+#ifndef MSR_CROSS_SECTION_LANE_FACTOR
+#define MSR_CROSS_SECTION_LANE_FACTOR 4
+#endif
+
+#ifndef MSR_NEUTRONICS_LANE_FACTOR
+#define MSR_NEUTRONICS_LANE_FACTOR 4
+#endif
+
+#ifndef MSR_THERMAL_LANE_FACTOR
+#define MSR_THERMAL_LANE_FACTOR 4
+#endif
+
+#ifndef MSR_HEAT_EXCHANGER_LANE_FACTOR
+#define MSR_HEAT_EXCHANGER_LANE_FACTOR 4
+#endif
+
 constexpr int kEnergyGroups = 2;
 constexpr int kPrecursorGroups = 6;
 constexpr int kMaxN = 128;
 constexpr int kMaxDelaySlots = 32;
 constexpr int kMaxLoopHistory = 64;
-constexpr int kCrossSectionLaneFactor = 4;
-constexpr int kNeutronicsLaneFactor = 4;
-constexpr int kThermalLaneFactor = 4;
-constexpr int kHeatExchangerLaneFactor = 4;
+constexpr int kCrossSectionLaneFactor = MSR_CROSS_SECTION_LANE_FACTOR;
+constexpr int kNeutronicsLaneFactor = MSR_NEUTRONICS_LANE_FACTOR;
+constexpr int kThermalLaneFactor = MSR_THERMAL_LANE_FACTOR;
+constexpr int kHeatExchangerLaneFactor = MSR_HEAT_EXCHANGER_LANE_FACTOR;
 constexpr int kReductionAccumulatorSlots = 8;
 
 enum InletMode : int {

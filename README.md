@@ -28,6 +28,8 @@ Current lane factors in `vitis/msr_vitis_kernel.cpp`:
 - thermal: `4`
 - heat exchanger: `4`
 
+These are now compile-time tunables, so exploratory HLS runs can lower lane factors through `add_files ... -cflags {-D...}` without forking the kernel source. The `10 ns` low-lane experiment sets all four lane factors to `2`.
+
 The version-controlled HLS script for the next exploratory run is `vitis/hls_synth_10ns.tcl`, which sets the clock target to `10 ns` (`100 MHz`). The current `5 ns` target is still treated as a stretch goal, not the default turnaround configuration.
 
 ## Reduction Design
