@@ -11,11 +11,11 @@ if {![info exists clock_period]} {
 }
 
 if {![info exists part_name]} {
-    set part_name xcu200-fsgd2104-2-e
+    set part_name xcvu9p-flga2104-2L-e
 }
 
 if {![info exists cflags]} {
-    set cflags {-std=c++17}
+    set cflags {-std=c++11}
 }
 
 set script_dir [file normalize [file dirname [info script]]]
@@ -25,9 +25,10 @@ if {![info exists source_file]} {
 } elseif {[file pathtype $source_file] ne "absolute"} {
     set source_file [file join $vitis_dir $source_file]
 }
-cd $vitis_dir
-
-open_project -reset [file join hls_module_work $project_name]
+set work_root [file normalize [file join $vitis_dir hls_module_work]]
+file mkdir $work_root
+cd $work_root
+open_project -reset $project_name
 set_top $top_name
 add_files $source_file -cflags $cflags
 open_solution -reset solution1

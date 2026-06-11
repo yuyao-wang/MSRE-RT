@@ -1,7 +1,4 @@
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstddef>
+#include <math.h>
 
 namespace msr_vitis {
 
@@ -347,7 +344,7 @@ void precursor_inlet_from_loop(
         inlet[group] =
             params.precursor_loop_efficiency *
             delayed *
-            std::exp(-params.lambda_i[group] * params.precursor_loop_tau);
+            exp(-params.lambda_i[group] * params.precursor_loop_tau);
     }
 }
 
@@ -903,9 +900,9 @@ void hx_kernel(
 double brayton_kernel(const KernelParams& params, double heater_outlet) {
     const double T1 = params.brayton_cooler_outlet_temp;
     const double T3 = max2(heater_outlet, T1 + 5.0);
-    const double T2s = T1 * std::pow(params.brayton_pi_c, (params.brayton_gamma - 1.0) / params.brayton_gamma);
+    const double T2s = T1 * pow(params.brayton_pi_c, (params.brayton_gamma - 1.0) / params.brayton_gamma);
     const double T2 = T1 + (T2s - T1) / params.brayton_eta_c;
-    const double T4s = T3 * std::pow(params.brayton_pi_t, -(params.brayton_gamma - 1.0) / params.brayton_gamma);
+    const double T4s = T3 * pow(params.brayton_pi_t, -(params.brayton_gamma - 1.0) / params.brayton_gamma);
     const double T4 = T3 - params.brayton_eta_t * (T3 - T4s);
     const double requested_recuperation = params.brayton_recuperator_efficiency * max2(T4 - T2, 0.0);
     const double approach_limit = max2(T3 - params.brayton_min_heater_approach - T2, 0.0);
