@@ -156,7 +156,14 @@ def run_simulation(params, index):
             ci_groups_selected_step = ci_groups.copy()
 
         if params.get('core_inlet_mode', 'prescribed') == 'hx_coupled':
-            Ts_core_0 = transport_delay(Ts_HX1_0, params['tau_hx_c'], Ts_in, buffer_hx_c, step)
+            Ts_core_0 = transport_delay(
+                Ts_HX1_0,
+                params['tau_hx_c'],
+                Ts_in,
+                buffer_hx_c,
+                step,
+                dt=params.get('outer_dt', 1.0),
+            )
         else:
             Ts_core_0 = Ts_in
         y_th = thermal_hydraulics(y_th, q_prime, Ts_core_0, params, step)
@@ -166,8 +173,22 @@ def run_simulation(params, index):
         temperature_fuel_middle_matrix[step] = temperature_fuel[mid_idx]
         temperature_graphite_middle_matrix[step] = temperature_graphite[mid_idx]
 
-        Ts_HX1_L = transport_delay(Ts_core_L, params['tau_c_hx'], Ts_out, buffer_c_hx, step)
-        Tss_HX1_0 = transport_delay(Tss_HX2_0, params['tau_r_hx'], Tss_in, buffer_r_hx, step)
+        Ts_HX1_L = transport_delay(
+            Ts_core_L,
+            params['tau_c_hx'],
+            Ts_out,
+            buffer_c_hx,
+            step,
+            dt=params.get('outer_dt', 1.0),
+        )
+        Tss_HX1_0 = transport_delay(
+            Tss_HX2_0,
+            params['tau_r_hx'],
+            Tss_in,
+            buffer_r_hx,
+            step,
+            dt=params.get('outer_dt', 1.0),
+        )
         y_hx1 = HX1(y_hx1, Ts_HX1_L, Tss_HX1_0, params, step)
         Ts_HX1 = y_hx1[:Nx, -1]
         Tss_HX1 = y_hx1[Nx:, -1]
@@ -176,15 +197,36 @@ def run_simulation(params, index):
 
         Ts_HX1_matrix[:, step] = Ts_HX1
 
-        Tss_HX2_L = transport_delay(Tss_HX1_L, params['tau_hx_r'], Tss_out, buffer_hx_r, step)
-        Tsss_HX2_0 = transport_delay(Tsss_pp_0, params['tau_pp_r'], Tsss_in, buffer_pp_r, step)
+        Tss_HX2_L = transport_delay(
+            Tss_HX1_L,
+            params['tau_hx_r'],
+            Tss_out,
+            buffer_hx_r,
+            step,
+            dt=params.get('outer_dt', 1.0),
+        )
+        Tsss_HX2_0 = transport_delay(
+            Tsss_pp_0,
+            params['tau_pp_r'],
+            Tsss_in,
+            buffer_pp_r,
+            step,
+            dt=params.get('outer_dt', 1.0),
+        )
         y_hx2 = HX2(y_hx2, Tss_HX2_L, Tsss_HX2_0, params, step)
         Tss_HX2 = y_hx2[:Nx, -1]
         Tsss_HX2 = y_hx2[Nx:, -1]
         Tss_HX2_0 = Tss_HX2[0]
         Tsss_HX2_L = Tsss_HX2[-1]
 
-        Tsss_pp_L = transport_delay(Tsss_HX2_L, params['tau_r_pp'], Tsss_out, buffer_r_pp, step)
+        Tsss_pp_L = transport_delay(
+            Tsss_HX2_L,
+            params['tau_r_pp'],
+            Tsss_out,
+            buffer_r_pp,
+            step,
+            dt=params.get('outer_dt', 1.0),
+        )
         y_pp = power_plant_temp(Tsss_pp_L, params, step)
         Tsss_pp_0 = y_pp
         pp_state = params.get('last_power_plant', {})

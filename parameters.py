@@ -146,7 +146,7 @@ def generate_parameters(
     ])
     rod_shape /= rod_shape.max(axis=1, keepdims=True)
     rod_sigma_a_amplitude = np.asarray([3.0e-4, 9.0e-4], dtype=float)
-    external_reactivity_to_absorption = np.asarray([4.0e-4, 1.2e-3], dtype=float)
+    external_reactivity_to_absorption = np.asarray([2.94e-3, 8.82e-3], dtype=float)
 
     phi_1_0 = 0.45 * mode_shape
     phi_2_0 = 1.00 * mode_shape
@@ -216,6 +216,7 @@ def generate_parameters(
         "A_f": A_f,
         "v_core": v_core,
         "u_core": v_core,
+        "u_precursor": v_core,
         "inlet_mode": inlet_mode,
         "core_inlet_mode": core_inlet_mode,
         "neutron_velocity": neutron_velocity,
@@ -265,6 +266,7 @@ def generate_parameters(
         "precursor_loop_state": precursor_loop_state,
         "precursor_loop_tau": tau_l,
         "outer_dt": outer_dt,
+        "ode_horizon": outer_dt,
         "c_p_s": c_p_s,
         "c_p_g": c_p_g,
         "rho_s": rho_s,

@@ -41,10 +41,12 @@ def solve_heat_exchanger(y_hx, hot_inlet, cold_inlet, config, params, step):
 
         return np.concatenate([dhot_dt, dcold_dt])
 
+    y_hx_array = np.asarray(y_hx, dtype=float)
     if step == 0:
         y0 = np.concatenate([hot_initial, cold_initial])
+    elif y_hx_array.size == 2 * Nx:
+        y0 = y_hx_array.reshape(-1)
     else:
-        y0 = np.asarray(y_hx[:, -1], dtype=float)
+        y0 = np.concatenate([hot_initial, cold_initial])
 
-    solution_y_hx = ode_solver(y0, [], pde_to_ode_hx, params)
-    return solution_y_hx.y
+    return ode_solver(y0, [], pde_to_ode_hx, params)

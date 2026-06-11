@@ -67,11 +67,13 @@ def thermal_hydraulics(y_th, q_prime, Ts_core_inlet, params, step):
 
         return np.concatenate([fuel_rhs, graphite_rhs])
 
+    y_th_array = np.asarray(y_th, dtype=float)
     if step == 0:
         y0 = np.concatenate([initialS, initialG])
+    elif y_th_array.size == 2 * N:
+        y0 = y_th_array.reshape(-1)
     else:
-        y0 = np.asarray(y_th[:, -1], dtype=float)
+        y0 = np.concatenate([initialS, initialG])
 
     y0[0] = inlet_temperature
-    solution_y_th = ode_solver(y0, [], pde_to_ode_th, params)
-    return solution_y_th.y
+    return ode_solver(y0, [], pde_to_ode_th, params)

@@ -52,9 +52,9 @@ def neutronics(y_n, state, step, params):
     chi_d = np.asarray(params["chi_d"], dtype=float)
     neutron_velocity = np.asarray(params["neutron_velocity"], dtype=float)
     d_e = np.asarray(params["d_e"], dtype=float)
-    u_core = float(params["u_core"])
+    u_precursor = float(params.get("u_precursor", params["u_core"]))
     outer_dt = float(params.get("outer_dt", 1.0))
-    current_time = step * outer_dt
+    current_time = float(params.get("history_time_offset_s", 0.0)) + step * outer_dt
     precursor_inlet = precursor_inlet_from_loop(params, current_time)
 
     temperature_fuel = state.get("temperature_fuel")
@@ -99,18 +99,20 @@ def neutronics(y_n, state, step, params):
         dphi_2_dt = neutron_velocity[1] * rhs_2
 
         precursor_production = beta[:, None] * F
-        precursor_advection = _precursor_advection(C, precursor_inlet, u_core, dz)
+        precursor_advection = _precursor_advection(C, precursor_inlet, u_precursor, dz)
         dC_dt = precursor_production - lambda_i[:, None] * C - precursor_advection
 
         return np.concatenate([dphi_1_dt, dphi_2_dt, dC_dt.reshape(-1)])
 
-    if step == 0 or y_n.size != params["neutronics_state_size"]:
+    y_n_array = np.asarray(y_n, dtype=float)
+    if step == 0:
         y0 = _initial_state(params)
+    elif y_n_array.size == params["neutronics_state_size"]:
+        y0 = y_n_array.reshape(-1)
     else:
-        y0 = np.asarray(y_n, dtype=float)
+        y0 = _initial_state(params)
 
-    solution_y_n = ode_solver(y0, [], pde_to_ode_neutronics, params)
-    y_n = solution_y_n.y
+    y_n = ode_solver(y0, [], pde_to_ode_neutronics, params)
 
     phi_1, phi_2, C = _extract_state(y_n[:, -1], N, precursor_groups)
     record_precursor_outlet(params, current_time + outer_dt, C[:, -1])
