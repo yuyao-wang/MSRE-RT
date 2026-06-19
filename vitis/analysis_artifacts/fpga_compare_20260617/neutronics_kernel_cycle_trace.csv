@@ -1,0 +1,62 @@
+schedule_name,cycle_index,state_id,st_id,op_count,categories,calls,operators
+neutronics_kernel,1,1,1,116,"{""axi_read"": 33, ""other"": 82, ""user_call"": 1}","{""sample_precursor_history"": 1}",axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | user_call:sample_precursor_history
+neutronics_kernel,2,2,2,4,"{""other"": 4}",{},other | other | other | other
+neutronics_kernel,3,3,3,6,"{""other"": 6}",{},other | other | other | other | other | other
+neutronics_kernel,4,4,4,6,"{""other"": 6}",{},other | other | other | other | other | other
+neutronics_kernel,5,5,5,11,"{""other"": 11}",{},other | other | other | other | other | other | other | other | other | other | other
+neutronics_kernel,6,6,6,2,"{""other"": 1, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | user_call:sample_precursor_history
+neutronics_kernel,7,7,7,2,"{""other"": 1, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | user_call:sample_precursor_history
+neutronics_kernel,8,8,8,3,"{""other"": 2, ""user_call"": 1}","{""sample_precursor_history"": 1}",user_call:sample_precursor_history | other | other
+neutronics_kernel,9,9,9,3,"{""other"": 2, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | user_call:sample_precursor_history
+neutronics_kernel,10,10,10,3,"{""other"": 2, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | user_call:sample_precursor_history
+neutronics_kernel,11,11,11,3,"{""other"": 2, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | user_call:sample_precursor_history
+neutronics_kernel,12,12,12,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | user_call:sample_precursor_history | other | other
+neutronics_kernel,13,13,13,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | user_call:sample_precursor_history
+neutronics_kernel,14,14,14,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | user_call:sample_precursor_history
+neutronics_kernel,15,15,15,3,"{""other"": 2, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | user_call:sample_precursor_history
+neutronics_kernel,16,16,16,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | user_call:sample_precursor_history | other | other
+neutronics_kernel,17,17,17,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | user_call:sample_precursor_history
+neutronics_kernel,18,18,18,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | user_call:sample_precursor_history
+neutronics_kernel,19,19,19,3,"{""other"": 2, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | user_call:sample_precursor_history
+neutronics_kernel,20,20,20,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | user_call:sample_precursor_history | other | other
+neutronics_kernel,21,21,21,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | user_call:sample_precursor_history
+neutronics_kernel,22,22,22,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | user_call:sample_precursor_history
+neutronics_kernel,23,23,23,3,"{""other"": 2, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | user_call:sample_precursor_history
+neutronics_kernel,24,24,24,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | user_call:sample_precursor_history | other | other
+neutronics_kernel,25,25,25,4,"{""other"": 3, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | user_call:sample_precursor_history
+neutronics_kernel,26,26,26,5,"{""other"": 4, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | user_call:sample_precursor_history | other
+neutronics_kernel,27,27,27,28,"{""other"": 27, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | other | other | other | other | user_call:sample_precursor_history | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other
+neutronics_kernel,28,28,28,10,"{""other"": 9, ""user_call"": 1}","{""sample_precursor_history"": 1}",other | other | user_call:sample_precursor_history | other | other | other | other | other | other | other
+neutronics_kernel,29,29,29,9,"{""other"": 9}",{},other | other | other | other | other | other | other | other | other
+neutronics_kernel,30,30,30,8,"{""other"": 8}",{},other | other | other | other | other | other | other | other
+neutronics_kernel,31,31,31,7,"{""other"": 7}",{},other | other | other | other | other | other | other
+neutronics_kernel,32,32,32,7,"{""other"": 7}",{},other | other | other | other | other | other | other
+neutronics_kernel,33,33,33,7,"{""other"": 7}",{},other | other | other | other | other | other | other
+neutronics_kernel,34,34,34,7,"{""other"": 7}",{},other | other | other | other | other | other | other
+neutronics_kernel,35,35,35,12,"{""other"": 12}",{},other | other | other | other | other | other | other | other | other | other | other | other
+neutronics_kernel,36,36,36,12,"{""other"": 12}",{},other | other | other | other | other | other | other | other | other | other | other | other
+neutronics_kernel,37,37,37,12,"{""other"": 12}",{},other | other | other | other | other | other | other | other | other | other | other | other
+neutronics_kernel,38,38,38,12,"{""other"": 12}",{},other | other | other | other | other | other | other | other | other | other | other | other
+neutronics_kernel,39,39,39,6,"{""other"": 6}",{},other | other | other | other | other | other
+neutronics_kernel,40,40,40,6,"{""other"": 6}",{},other | other | other | other | other | other
+neutronics_kernel,41,41,41,6,"{""other"": 6}",{},other | other | other | other | other | other
+neutronics_kernel,42,42,42,8,"{""other"": 7, ""user_call"": 1}","{""neutronics_rhs"": 1}",other | other | other | other | other | other | other | user_call:neutronics_rhs
+neutronics_kernel,43,43,43,2,"{""other"": 1, ""user_call"": 1}","{""neutronics_rhs"": 1}",other | user_call:neutronics_rhs
+neutronics_kernel,44,44,44,2,"{""other"": 1, ""user_call"": 1}","{""load_neutronics_stage"": 1}",other | user_call:load_neutronics_stage
+neutronics_kernel,45,45,45,1,"{""user_call"": 1}","{""load_neutronics_stage"": 1}",user_call:load_neutronics_stage
+neutronics_kernel,46,46,46,1,"{""user_call"": 1}","{""neutronics_rhs"": 1}",user_call:neutronics_rhs
+neutronics_kernel,47,47,47,1,"{""user_call"": 1}","{""neutronics_rhs"": 1}",user_call:neutronics_rhs
+neutronics_kernel,48,48,48,1,"{""user_call"": 1}","{""load_neutronics_stage"": 1}",user_call:load_neutronics_stage
+neutronics_kernel,49,49,49,1,"{""user_call"": 1}","{""load_neutronics_stage"": 1}",user_call:load_neutronics_stage
+neutronics_kernel,50,50,50,1,"{""user_call"": 1}","{""neutronics_rhs"": 1}",user_call:neutronics_rhs
+neutronics_kernel,51,51,51,1,"{""user_call"": 1}","{""neutronics_rhs"": 1}",user_call:neutronics_rhs
+neutronics_kernel,52,52,52,1,"{""user_call"": 1}","{""load_neutronics_stage"": 1}",user_call:load_neutronics_stage
+neutronics_kernel,53,53,53,1,"{""user_call"": 1}","{""load_neutronics_stage"": 1}",user_call:load_neutronics_stage
+neutronics_kernel,54,54,54,1,"{""user_call"": 1}","{""neutronics_rhs"": 1}",user_call:neutronics_rhs
+neutronics_kernel,55,55,55,1,"{""user_call"": 1}","{""neutronics_rhs"": 1}",user_call:neutronics_rhs
+neutronics_kernel,56,56,56,1,"{""user_call"": 1}","{""combine_neutronics"": 1}",user_call:combine_neutronics
+neutronics_kernel,57,57,57,1,"{""user_call"": 1}","{""combine_neutronics"": 1}",user_call:combine_neutronics
+neutronics_kernel,58,58,58,5,"{""other"": 4, ""user_call"": 1}","{""neutronics_kernel_Pipeline_VITIS_LOOP_619_1"": 1}",user_call:neutronics_kernel_Pipeline_VITIS_LOOP_619_1 | other | other | other | other
+neutronics_kernel,59,59,59,19,"{""other"": 18, ""user_call"": 1}","{""neutronics_kernel_Pipeline_VITIS_LOOP_619_1"": 1}",user_call:neutronics_kernel_Pipeline_VITIS_LOOP_619_1 | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other
+neutronics_kernel,60,60,60,18,"{""other"": 18}",{},other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other
+neutronics_kernel,61,61,61,34,"{""other"": 31, ""partselect"": 3}",{},other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | other | partselect | other | other | other | other | other | partselect | other | other | other | partselect | other | other | other | other | other | other

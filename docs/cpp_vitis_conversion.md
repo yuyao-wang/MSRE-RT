@@ -6,6 +6,9 @@
 - Plain C++ build file: [`cpp/CMakeLists.txt`](../cpp/CMakeLists.txt)
 - Vitis HLS kernel-oriented implementation: [`vitis/msr_vitis_kernel.cpp`](../vitis/msr_vitis_kernel.cpp)
 - Vitis syntax-check build file: [`vitis/CMakeLists.txt`](../vitis/CMakeLists.txt)
+- Experimental full-transient batch top: `msr_transient_batch_kernel()` inside [`vitis/msr_vitis_kernel.cpp`](../vitis/msr_vitis_kernel.cpp)
+- Same-init plain C++ transient control runner: [`vitis/vcu118/msr_transient_batch_plain_timed.cpp`](../vitis/vcu118/msr_transient_batch_plain_timed.cpp)
+- Resident transient benchmark script: [`vitis/analyze_transient_batch_bench.py`](../vitis/analyze_transient_batch_bench.py)
 
 The C++ code keeps the Python step ordering and the same physics decomposition:
 
@@ -30,6 +33,73 @@ The current HLS kernel also makes the interface / compute boundary explicit:
 - updated state is written back only at the end of the step
 
 This avoids illegal `m_axi` disaggregation while still enabling aggressive internal parallelism.
+
+The current kernel file now contains two hardware-facing execution modes:
+
+- `msr_step_kernel()`
+  - reference one-step coupled advance
+- `msr_transient_batch_kernel()`
+  - multi-step, multi-scenario transient advance with on-chip resident state between steps
+
+## Resident Batch Results
+
+The current publishable resident-transient configuration is:
+
+- full transient loop resident on FPGA-side state
+- `hardware_substeps = 32`
+- shared / low-lane arithmetic:
+  - cross-sections `2`
+  - neutronics `2`
+  - thermal `4`
+  - HX `2`
+- resident mixed precision:
+  - thermal state `float`
+  - delay / history `float`
+  - control streams `float`
+- explicit RK4 precursor path
+  - `MSR_PRECURSOR_ANALYTIC_UPDATE=0`
+
+Validation is now reported with two CPU baselines:
+
+- full-program plain C++
+  - includes its own initialization and CSV/report path
+- same-init plain C++
+  - starts from the exact same state / delay / control blobs as the resident batch runner
+  - isolates numerical drift from initialization drift
+
+For the `600`-step nominal case (`0 pcm`, `outer_dt = 1 s`), the resident batch path produced:
+
+- full-program plain C++ wall time: `4.992 s`
+- resident batch CPU proxy wall time: `0.169 s`
+- speedup vs full-program plain C++: `29.46x`
+- same-init plain C++ wall time: `0.301 s`
+- speedup vs same-init plain C++: `1.77x`
+
+Same-init accuracy for that nominal case is tight enough to treat the resident loop as numerically preserved for the article baseline:
+
+- `phi_mid` relative error: `6.46e-4`
+- `power` relative error: `6.23e-4`
+- `fuel_mid` relative error: `1.59e-4`
+- `graphite_mid` relative error: `1.46e-3`
+- core / HX / Brayton scalar temperatures: roughly `1e-4 .. 3e-4` relative
+
+Against the Python / paper reference for the same nominal case, the resident batch path is also close:
+
+- `phi_mid` relative error: `7.38e-5`
+- `power` relative error: `6.41e-5`
+- most scalar temperatures: about `1e-4 .. 3e-4` relative
+
+For a `50 pcm` insertion at `300 s`, the resident batch path is retained as a stress case. It preserves the thermal / loop states well and exposes the expected stronger sensitivity of the neutronics response:
+
+- speedup vs full-program plain C++: `28.69x`
+- speedup vs same-init plain C++: `1.74x`
+- same-init `phi_mid` relative error: `1.99e-2`
+- same-init `power` relative error: `1.99e-2`
+
+So the current manuscript split is:
+
+- use the `0 pcm` resident transient as the deterministic resident-loop baseline
+- report nonzero reactivity-step cases as stress / sensitivity cases rather than weakening the hardware-emulation claim
 
 ## Mapping Summary
 
@@ -256,6 +326,26 @@ This does not remove the `thermal -> neutronics` boundary, but it does remove ho
 
 `rho`, efficiency, and work-balance outputs should be post-step side products, not step-blocking dependencies.
 
+## Experimental Batched Transient Kernel
+
+`msr_transient_batch_kernel()` is the first hardware form that matches the intended throughput-oriented FPGA usage better than the single-step interface.
+
+It does three architectural things differently:
+
+- loops over the full transient inside the FPGA top instead of requiring one host launch per time step
+- keeps state, transport delays, and precursor-loop history resident on chip for the duration of a scenario
+- iterates over multiple independent scenarios in one kernel launch so the platform can be used for parameter sweeps and fault batches
+
+The control interface is intentionally narrow:
+
+- `states[scenario]`
+- `delays[scenario]`
+- `params[scenario]`
+- `rod_positions[scenario, step]`
+- `external_reactivities[scenario, step]`
+
+Only final diagnostics and final state are written back. That keeps host traffic proportional to scenario count rather than to time-step count.
+
 ## Recommended Hardware Partition
 
 ### FPGA
@@ -277,18 +367,62 @@ This does not remove the `thermal -> neutronics` boundary, but it does remove ho
 
 If a single-kernel HLS implementation is preferred first, keep the exact top-level order already used in [`vitis/msr_vitis_kernel.cpp`](../vitis/msr_vitis_kernel.cpp), then split into two kernels only after profiling.
 
-## Current Limitations
+## Current Implementation Status
 
 - The plain C++ reference is runnable and writes CSV traces.
-- The Vitis deliverable is kernel-level HLS code, not a complete XRT host application.
+- The host-intermediated split path uses the CPU broker to commit physical delay channels, stage boundary packets, launch kernels, and read scalar boundary outputs.
+- Direct board-to-board communication is not required because the core/BOP boundary is a physical transport-delay boundary.
 - The HLS version uses fixed-step RK4 substeps instead of the Python adaptive RK4.
   - This is intentional for deterministic scheduling.
-- Exact offline-vs-HLS numerical agreement still needs a dedicated comparison harness.
+- The deterministic timing report should include repeats / warmup, mean / median / standard deviation or explicit bounds, 95th / 99th percentile or conservative maximum bounds, host OS / CPU / software versions, background load, and sustained multi-step behavior.
 
-## Immediate Next Step
+## Analytic Precursor Update Snapshot (2026-06-18)
 
-If the next milestone is hardware bring-up, the most useful follow-up is:
+The latest experiment replaces the explicit RK4 precursor evolution inside `neutronics_kernel()` with an analytic exponential update while keeping the prompt flux path in the RK4/IMEX-style split.
 
-1. add a small XRT host wrapper around `msr_step_kernel`
-2. export one Python reference case into static arrays
-3. compare `phi_mid`, `power`, `Ts_core_L`, and `rho` step-by-step
+Measured against the one-step Python physics reference for `N=200`, `outer_dt=1.0 s`, `steady_state_steps=180`:
+
+- power absolute error drops from `8.01233e+01 W` to `2.78655e+00 W` (`0.03478x`)
+- `phi_mid` absolute error drops from `7.27907e-08` to `2.53153e-09` (`0.03478x`)
+- `Ts_core_outlet` absolute error drops from `5.33614e-06 K` to `2.98599e-06 K` (`0.55958x`)
+- BOP-side temperatures are unchanged because only the core neutronics update changed
+
+The local CPU proxy does not show a performance win for this formulation:
+
+- baseline one-step core median: `13.063735 us`
+- analytic one-step core median: `16.894535 us`
+- total coupled median: `15.214975 us` -> `19.060400 us` (`0.79825x` speedup ratio, so slower)
+
+Remote Vitis HLS `csynth` on `xcvu9p-flga2104-2L-e` shows the naive analytic implementation is not directly hardware-viable in its current fully aggressive form:
+
+- baseline `core_step_kernel_n200_s1`: `19079..19139` cycles, `7.672 ns` estimated clock
+- analytic variant: latency `undef`, `3593.586 ns` estimated clock
+- LUT: `185984` -> `615052` (`3.307x`)
+- FF: `159803` -> `486227` (`3.043x`)
+- DSP: `1486` -> `6250` (`4.206x`)
+- BRAM18K: `472` -> `6`
+
+Interpretation:
+
+- the analytic precursor update is numerically attractive
+- but a direct HLS translation explodes floating-point operator replication and destroys timing closure
+- this reinforces the need for the architecture change already outlined in this note: resident multi-step execution, mixed precision, and shared/time-multiplexed floating-point resources instead of a naive full-unroll mapping
+
+Artifacts for the article are under `vitis/analysis_artifacts/precursor_analytic_update_20260618_interleaved/`.
+
+## Deterministic Timing Notes
+
+The manuscript timing claim is the host-intermediated deterministic real-time emulation path:
+
+1. CPU broker commits delayed boundary channels.
+2. Core and BOP devices consume precommitted delayed samples.
+3. Newly generated boundary values are recorded for future steps.
+4. No direct inter-board link is required.
+
+For the current `N=200`, `1 s` R12 timing case:
+
+- same-source CPU C++ split reference: `13.047735 us` per step from `200` timed repeats after `20` warmup repeats
+- measured host/JTAG-AXI board wait path: `3.043 ms` per step (`1.496 ms` core wait + `1.547 ms` BOP wait)
+- cycle-accounted HLS-only split-pair latency: `321.14..322.34 us` at the deployed `20 ns` clock
+- sustained `600`-step host/JTAG budget inferred from the repeated step protocol: `1.826 s` wall time for `600 s` simulated time
+- resident transient batch log: `600` consecutive outer steps in `173.623 ms`, or `289.371 us/step`

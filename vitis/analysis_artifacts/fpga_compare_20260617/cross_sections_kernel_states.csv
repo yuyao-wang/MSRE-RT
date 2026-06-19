@@ -1,0 +1,33 @@
+schedule_name,state_order,state_id,st_id,op_count,categories,calls
+cross_sections_kernel,1,1,1,4,"{""axi_read"": 1, ""other"": 3}",{}
+cross_sections_kernel,2,2,2,24,"{""axi_read"": 9, ""other"": 14, ""partselect"": 1}",{}
+cross_sections_kernel,3,3,3,23,"{""other"": 20, ""partselect"": 3}",{}
+cross_sections_kernel,4,4,4,4,"{""other"": 4}",{}
+cross_sections_kernel,5,5,5,10,"{""other"": 10}",{}
+cross_sections_kernel,6,6,6,22,"{""other"": 22}",{}
+cross_sections_kernel,7,7,7,42,"{""other"": 42}",{}
+cross_sections_kernel,8,8,8,38,"{""other"": 38}",{}
+cross_sections_kernel,9,9,9,24,"{""other"": 24}",{}
+cross_sections_kernel,10,10,10,80,"{""other"": 80}",{}
+cross_sections_kernel,11,11,11,64,"{""other"": 64}",{}
+cross_sections_kernel,12,12,12,36,"{""other"": 36}",{}
+cross_sections_kernel,13,13,13,36,"{""other"": 36}",{}
+cross_sections_kernel,14,14,14,32,"{""other"": 32}",{}
+cross_sections_kernel,15,15,15,18,"{""other"": 18}",{}
+cross_sections_kernel,16,16,16,18,"{""other"": 18}",{}
+cross_sections_kernel,17,17,17,18,"{""other"": 18}",{}
+cross_sections_kernel,18,18,18,22,"{""other"": 22}",{}
+cross_sections_kernel,19,19,19,130,"{""other"": 120, ""partselect"": 10}",{}
+cross_sections_kernel,20,20,20,12,"{""other"": 12}",{}
+cross_sections_kernel,21,21,21,12,"{""other"": 12}",{}
+cross_sections_kernel,22,22,22,56,"{""other"": 52, ""partselect"": 4}",{}
+cross_sections_kernel,23,23,23,8,"{""other"": 8}",{}
+cross_sections_kernel,24,24,24,8,"{""other"": 8}",{}
+cross_sections_kernel,25,25,25,8,"{""other"": 8}",{}
+cross_sections_kernel,26,26,26,10,"{""other"": 10}",{}
+cross_sections_kernel,27,27,27,6,"{""other"": 6}",{}
+cross_sections_kernel,28,28,28,6,"{""other"": 6}",{}
+cross_sections_kernel,29,29,29,8,"{""other"": 8}",{}
+cross_sections_kernel,30,30,30,4,"{""other"": 4}",{}
+cross_sections_kernel,31,31,31,12,"{""other"": 12}",{}
+cross_sections_kernel,32,32,32,1,"{""other"": 1}",{}

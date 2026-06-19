@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include "../point_kinetics_shared.hpp"
+
 namespace msr {
 
 constexpr int kEnergyGroups = 2;
@@ -32,6 +34,8 @@ struct PowerPlantState {
     double W_net = 0.0;
     double Q_in = 0.0;
     double Q_out = 0.0;
+    double available_heat = 0.0;
+    double mass_flow_effective = 0.0;
     double eta_b = 0.0;
 };
 
@@ -67,14 +71,14 @@ struct Parameters {
     double dx = 0.0;
     double outer_dt = 1.0;
     double ode_horizon = 1.0;
-    double nominal_total_power = 1.0e5;
+    double nominal_total_power = 0.0;
 
     std::vector<double> z;
     std::vector<double> A_f;
 
-    double v_core = 0.2;
-    double u_core = 0.2;
-    double u_precursor = 0.2;
+    double v_core = 20.0;
+    double u_core = 20.0;
+    double u_precursor = 20.0;
     std::string inlet_mode = "recirculate";
     std::string core_inlet_mode = "hx_coupled";
 
@@ -107,6 +111,7 @@ struct Parameters {
     std::array<std::vector<double>, kEnergyGroups> rod_shape;
     std::array<double, kEnergyGroups> rod_sigma_a_amplitude{3.0e-4, 9.0e-4};
     std::array<double, kEnergyGroups> external_reactivity_to_absorption{2.94e-3, 8.82e-3};
+    std::string external_reactivity_mode = "fission_source";
 
     std::vector<double> T_s_ref;
     std::vector<double> T_gr_ref;
@@ -119,6 +124,9 @@ struct Parameters {
 
     double power_scale = 1.0;
     double reference_multiplication_ratio = 1.0;
+    double critical_fission_scale = 1.0;
+    std::vector<std::vector<double>> delayed_source_matrix;
+    bool delayed_source_matrix_ready = false;
 
     double precursor_loop_efficiency = 0.92;
     double precursor_loop_tau = 16.73;
@@ -148,7 +156,7 @@ struct Parameters {
     double L_HX = 2.0;
     double V_he_s = 75.7e-3 / 23.6;
     double V_he_ss = 53.6e-3 / 23.6;
-    double U_hx = 500.0;
+    double U_hx = 5.0e5;
     double M_he_s = 342.0;
     double M_he_ss = 117.0;
     double c_p_ss = 2416.0;
@@ -156,7 +164,7 @@ struct Parameters {
     double L_HX2 = 2.0;
     double V_he2_s = 53.6e-3 / 23.6;
     double V_he2_ss = 33.6e-3 / 23.6;
-    double U2_hx = 500.0;
+    double U2_hx = 5.0e5;
     double M_he2_s = 117.0;
     double M_he2_ss = 100.0;
     double c_p_sss = 2416.0;
@@ -170,6 +178,7 @@ struct Parameters {
     double brayton_cooler_outlet_temp = 620.0;
     double brayton_min_heater_approach = 12.0;
     double brayton_mdot = 100.0;
+    double brayton_available_heat_W = 0.0;
 
     std::vector<double> u_init;
     std::vector<double> v_init;
@@ -194,12 +203,28 @@ struct Parameters {
     double min_diffusion = 1.0e-5;
     double min_cross_section = 1.0e-6;
     double last_global_rho = 0.0;
+    double last_effective_beta = 0.0;
+    double last_neutron_amplitude = 1.0;
+    bool point_kinetics_enabled = true;
+    double prompt_generation_time_s = 2.0e-4;
+    double kinetics_amplitude = 1.0;
+    std::array<double, kPrecursorGroups> kinetics_precursors{};
+    std::array<double, kPrecursorGroups> kinetics_beta_effective{};
+    double reactivity_insertion_time_s = 300.0;
+    double reactivity_insertion_pcm = 0.0;
     PowerPlantState last_power_plant;
 
     int history_step_offset = 0;
     double history_time_offset_s = 0.0;
     int steady_state_steps = 180;
     bool use_steady_state_initialization = true;
+
+    std::deque<double> buffer_hx_c_init;
+    std::deque<double> buffer_c_hx_init;
+    std::deque<double> buffer_r_hx_init;
+    std::deque<double> buffer_hx_r_init;
+    std::deque<double> buffer_r_pp_init;
+    std::deque<double> buffer_pp_r_init;
 
     double ode_rtol = 1.0e-4;
     double ode_atol = 1.0e-6;
@@ -365,8 +390,12 @@ double TransportDelay(
     int step,
     double dt
 ) {
+    (void)step;
     const int delay_steps = std::max(static_cast<int>(std::llround(time_delay / std::max(dt, 1.0e-12))), 0);
-    if (step < delay_steps) {
+    if (delay_steps == 0) {
+        return input_value;
+    }
+    if (static_cast<int>(buffer.size()) < delay_steps) {
         buffer.push_back(input_value);
         return initial_output;
     }
@@ -376,6 +405,10 @@ double TransportDelay(
     }
     buffer.push_back(input_value);
     return output_value;
+}
+
+double ExternalReactivityAtTime(const Parameters& params, double time_s) {
+    return (time_s >= params.reactivity_insertion_time_s) ? params.reactivity_insertion_pcm * 1.0e-5 : 0.0;
 }
 
 std::array<std::vector<double>, kEnergyGroups> RodAbsorptionPerturbation(
@@ -391,7 +424,7 @@ std::array<std::vector<double>, kEnergyGroups> RodAbsorptionPerturbation(
                 rod_position *
                 params.rod_shape[group][static_cast<std::size_t>(idx)] *
                 params.rod_sigma_a_amplitude[group];
-            if (external_reactivity != 0.0) {
+            if (external_reactivity != 0.0 && params.external_reactivity_mode == "absorption") {
                 delta +=
                     (-external_reactivity) *
                     params.rod_shape[group][static_cast<std::size_t>(idx)] *
@@ -403,15 +436,31 @@ std::array<std::vector<double>, kEnergyGroups> RodAbsorptionPerturbation(
     return delta_sigma_a;
 }
 
+double FissionSourceScale(
+    const Parameters& params,
+    double external_reactivity,
+    double override_value = std::numeric_limits<double>::quiet_NaN()
+) {
+    if (std::isfinite(override_value)) {
+        return override_value;
+    }
+    if (params.external_reactivity_mode == "absorption") {
+        return params.critical_fission_scale;
+    }
+    return params.critical_fission_scale / std::max(1.0 - external_reactivity, 1.0e-12);
+}
+
 CrossSections BuildCrossSections(
     const std::vector<double>& temperature_fuel,
     const std::vector<double>& temperature_graphite,
     const Parameters& params,
     double rod_position,
-    double external_reactivity
+    double external_reactivity,
+    double fission_scale_override = std::numeric_limits<double>::quiet_NaN()
 ) {
     CrossSections xs;
     const auto delta_sigma_a_rod = RodAbsorptionPerturbation(params, rod_position, external_reactivity);
+    const double source_scale = FissionSourceScale(params, external_reactivity, fission_scale_override);
 
     xs.sigma_s12.resize(static_cast<std::size_t>(params.N), 0.0);
     for (int group = 0; group < kEnergyGroups; ++group) {
@@ -446,14 +495,15 @@ CrossSections BuildCrossSections(
                     delta_sigma_a_rod[group][static_cast<std::size_t>(idx)],
                 params.min_cross_section
             );
-            xs.nu_sigma_f[group][static_cast<std::size_t>(idx)] = std::max(
+            const double nu_sigma_f_unscaled = std::max(
                 params.nu_sigma_f_ref[group][static_cast<std::size_t>(idx)] +
                     params.a_nu_sigma_f_s[group][static_cast<std::size_t>(idx)] * delta_T_s +
                     params.a_nu_sigma_f_gr[group][static_cast<std::size_t>(idx)] * delta_T_gr,
                 params.min_cross_section
             );
+            xs.nu_sigma_f[group][static_cast<std::size_t>(idx)] = nu_sigma_f_unscaled * source_scale;
             xs.sigma_f[group][static_cast<std::size_t>(idx)] =
-                xs.nu_sigma_f[group][static_cast<std::size_t>(idx)] / params.nu[group];
+                nu_sigma_f_unscaled / params.nu[group];
             xs.sigma_r[group][static_cast<std::size_t>(idx)] =
                 xs.sigma_a[group][static_cast<std::size_t>(idx)] +
                 xs.D[group][static_cast<std::size_t>(idx)] * params.transverse_buckling_sq[group][static_cast<std::size_t>(idx)];
@@ -611,6 +661,314 @@ std::vector<double> DiffusionTerm(
     return result;
 }
 
+std::vector<std::vector<double>> ZeroMatrix(int rows, int cols) {
+    return std::vector<std::vector<double>>(
+        static_cast<std::size_t>(rows),
+        std::vector<double>(static_cast<std::size_t>(cols), 0.0)
+    );
+}
+
+double Dot(const std::vector<double>& lhs, const std::vector<double>& rhs) {
+    double sum = 0.0;
+    for (std::size_t idx = 0; idx < lhs.size(); ++idx) {
+        sum += lhs[idx] * rhs[idx];
+    }
+    return sum;
+}
+
+std::vector<double> MatVec(const std::vector<std::vector<double>>& matrix, const std::vector<double>& vector) {
+    std::vector<double> result(matrix.size(), 0.0);
+    for (std::size_t row = 0; row < matrix.size(); ++row) {
+        double sum = 0.0;
+        for (std::size_t col = 0; col < vector.size(); ++col) {
+            sum += matrix[row][col] * vector[col];
+        }
+        result[row] = sum;
+    }
+    return result;
+}
+
+std::vector<double> SolveLinearSystem(
+    std::vector<std::vector<double>> matrix,
+    std::vector<double> rhs
+) {
+    const int n = static_cast<int>(rhs.size());
+    for (int pivot = 0; pivot < n; ++pivot) {
+        int best_row = pivot;
+        double best_value = std::abs(matrix[static_cast<std::size_t>(pivot)][static_cast<std::size_t>(pivot)]);
+        for (int row = pivot + 1; row < n; ++row) {
+            const double candidate = std::abs(matrix[static_cast<std::size_t>(row)][static_cast<std::size_t>(pivot)]);
+            if (candidate > best_value) {
+                best_value = candidate;
+                best_row = row;
+            }
+        }
+        if (best_value <= 1.0e-14) {
+            throw std::runtime_error("Singular matrix encountered in criticality solve.");
+        }
+        if (best_row != pivot) {
+            std::swap(matrix[static_cast<std::size_t>(best_row)], matrix[static_cast<std::size_t>(pivot)]);
+            std::swap(rhs[static_cast<std::size_t>(best_row)], rhs[static_cast<std::size_t>(pivot)]);
+        }
+
+        const double diagonal = matrix[static_cast<std::size_t>(pivot)][static_cast<std::size_t>(pivot)];
+        for (int col = pivot; col < n; ++col) {
+            matrix[static_cast<std::size_t>(pivot)][static_cast<std::size_t>(col)] /= diagonal;
+        }
+        rhs[static_cast<std::size_t>(pivot)] /= diagonal;
+
+        for (int row = 0; row < n; ++row) {
+            if (row == pivot) {
+                continue;
+            }
+            const double factor = matrix[static_cast<std::size_t>(row)][static_cast<std::size_t>(pivot)];
+            if (factor == 0.0) {
+                continue;
+            }
+            for (int col = pivot; col < n; ++col) {
+                matrix[static_cast<std::size_t>(row)][static_cast<std::size_t>(col)] -=
+                    factor * matrix[static_cast<std::size_t>(pivot)][static_cast<std::size_t>(col)];
+            }
+            rhs[static_cast<std::size_t>(row)] -= factor * rhs[static_cast<std::size_t>(pivot)];
+        }
+    }
+    return rhs;
+}
+
+std::vector<std::vector<double>> BuildDiffusionMatrix(
+    const std::vector<double>& diffusion,
+    double dz,
+    double d_extrap
+) {
+    const int size = static_cast<int>(diffusion.size());
+    auto matrix = ZeroMatrix(size, size);
+    for (int column = 0; column < size; ++column) {
+        std::vector<double> basis(static_cast<std::size_t>(size), 0.0);
+        basis[static_cast<std::size_t>(column)] = 1.0;
+        const auto response = DiffusionTerm(basis, diffusion, dz, d_extrap);
+        for (int row = 0; row < size; ++row) {
+            matrix[static_cast<std::size_t>(row)][static_cast<std::size_t>(column)] =
+                response[static_cast<std::size_t>(row)];
+        }
+    }
+    return matrix;
+}
+
+std::vector<double> SolvePrecursorGroupSteadyState(
+    const std::vector<double>& source,
+    double beta_i,
+    double lambda_i,
+    const Parameters& params
+) {
+    const double velocity = std::abs(params.u_precursor);
+    if (velocity < 1.0e-12) {
+        std::vector<double> concentration(source.size(), 0.0);
+        for (std::size_t idx = 0; idx < source.size(); ++idx) {
+            concentration[idx] = beta_i * source[idx] / std::max(lambda_i, 1.0e-12);
+        }
+        return concentration;
+    }
+
+    const double advection_coeff = velocity / std::max(params.dz, 1.0e-12);
+    const double denominator = advection_coeff + lambda_i;
+    const double loop_decay =
+        params.precursor_loop_efficiency * std::exp(-lambda_i * params.precursor_loop_tau);
+
+    double inlet = 0.0;
+    std::vector<double> concentration(source.size(), 0.0);
+    for (int iteration = 0; iteration < 256; ++iteration) {
+        const double previous_inlet = inlet;
+        concentration[0] = (advection_coeff * inlet + beta_i * source[0]) / denominator;
+        for (std::size_t idx = 1; idx < source.size(); ++idx) {
+            concentration[idx] =
+                (advection_coeff * concentration[idx - 1] + beta_i * source[idx]) / denominator;
+        }
+        const double updated_inlet = loop_decay * concentration.back();
+        const double scale = std::max({1.0, std::abs(updated_inlet), std::abs(previous_inlet)});
+        inlet = updated_inlet;
+        if (std::abs(updated_inlet - previous_inlet) / scale <= 1.0e-12) {
+            break;
+        }
+    }
+
+    concentration[0] = (advection_coeff * inlet + beta_i * source[0]) / denominator;
+    for (std::size_t idx = 1; idx < source.size(); ++idx) {
+        concentration[idx] =
+            (advection_coeff * concentration[idx - 1] + beta_i * source[idx]) / denominator;
+    }
+    return concentration;
+}
+
+std::array<std::vector<double>, kPrecursorGroups> SolvePrecursorGroupsSteadyState(
+    const std::vector<double>& source,
+    const Parameters& params
+) {
+    std::array<std::vector<double>, kPrecursorGroups> groups;
+    for (int group = 0; group < kPrecursorGroups; ++group) {
+        groups[group] = SolvePrecursorGroupSteadyState(
+            source,
+            params.beta[group],
+            params.lambda_i[group],
+            params
+        );
+    }
+    return groups;
+}
+
+const std::vector<std::vector<double>>& DelayedSourceMatrix(Parameters& params) {
+    if (params.delayed_source_matrix_ready) {
+        return params.delayed_source_matrix;
+    }
+    params.delayed_source_matrix = ZeroMatrix(params.N, params.N);
+    for (int column = 0; column < params.N; ++column) {
+        std::vector<double> unit_source(static_cast<std::size_t>(params.N), 0.0);
+        unit_source[static_cast<std::size_t>(column)] = 1.0;
+        const auto precursor_groups = SolvePrecursorGroupsSteadyState(unit_source, params);
+        for (int row = 0; row < params.N; ++row) {
+            double delayed = 0.0;
+            for (int group = 0; group < kPrecursorGroups; ++group) {
+                delayed += params.lambda_i[group] * precursor_groups[group][static_cast<std::size_t>(row)];
+            }
+            params.delayed_source_matrix[static_cast<std::size_t>(row)][static_cast<std::size_t>(column)] = delayed;
+        }
+    }
+    params.delayed_source_matrix_ready = true;
+    return params.delayed_source_matrix;
+}
+
+struct CriticalMode {
+    double k_eff = 1.0;
+    std::vector<double> phi_1;
+    std::vector<double> phi_2;
+};
+
+CriticalMode SolveCriticalMode(const CrossSections& xs, Parameters& params) {
+    const int size = params.N;
+    const int full_size = 2 * size;
+    const auto diffusion_1 = BuildDiffusionMatrix(xs.D[0], params.dz, params.d_e[0]);
+    const auto diffusion_2 = BuildDiffusionMatrix(xs.D[1], params.dz, params.d_e[1]);
+    const auto& delayed_matrix = DelayedSourceMatrix(params);
+
+    auto mass = ZeroMatrix(full_size, full_size);
+    auto source = ZeroMatrix(full_size, full_size);
+
+    for (int row = 0; row < size; ++row) {
+        for (int col = 0; col < size; ++col) {
+            mass[static_cast<std::size_t>(row)][static_cast<std::size_t>(col)] =
+                -diffusion_1[static_cast<std::size_t>(row)][static_cast<std::size_t>(col)];
+            mass[static_cast<std::size_t>(size + row)][static_cast<std::size_t>(size + col)] =
+                -diffusion_2[static_cast<std::size_t>(row)][static_cast<std::size_t>(col)];
+        }
+        mass[static_cast<std::size_t>(row)][static_cast<std::size_t>(row)] += xs.sigma_r[0][static_cast<std::size_t>(row)];
+        mass[static_cast<std::size_t>(size + row)][static_cast<std::size_t>(size + row)] += xs.sigma_r[1][static_cast<std::size_t>(row)];
+        mass[static_cast<std::size_t>(size + row)][static_cast<std::size_t>(row)] -= xs.sigma_s12[static_cast<std::size_t>(row)];
+    }
+
+    const double prompt_factor = std::max(1.0 - params.Beta, 0.0);
+    for (int row = 0; row < size; ++row) {
+        for (int col = 0; col < size; ++col) {
+            const double delayed_fast = delayed_matrix[static_cast<std::size_t>(row)][static_cast<std::size_t>(col)] * xs.nu_sigma_f[0][static_cast<std::size_t>(col)];
+            const double delayed_thermal = delayed_matrix[static_cast<std::size_t>(row)][static_cast<std::size_t>(col)] * xs.nu_sigma_f[1][static_cast<std::size_t>(col)];
+
+            source[static_cast<std::size_t>(row)][static_cast<std::size_t>(col)] =
+                params.chi_p[0] * prompt_factor * (row == col ? xs.nu_sigma_f[0][static_cast<std::size_t>(col)] : 0.0) +
+                params.chi_d[0] * delayed_fast;
+            source[static_cast<std::size_t>(row)][static_cast<std::size_t>(size + col)] =
+                params.chi_p[0] * prompt_factor * (row == col ? xs.nu_sigma_f[1][static_cast<std::size_t>(col)] : 0.0) +
+                params.chi_d[0] * delayed_thermal;
+            source[static_cast<std::size_t>(size + row)][static_cast<std::size_t>(col)] =
+                params.chi_p[1] * prompt_factor * (row == col ? xs.nu_sigma_f[0][static_cast<std::size_t>(col)] : 0.0) +
+                params.chi_d[1] * delayed_fast;
+            source[static_cast<std::size_t>(size + row)][static_cast<std::size_t>(size + col)] =
+                params.chi_p[1] * prompt_factor * (row == col ? xs.nu_sigma_f[1][static_cast<std::size_t>(col)] : 0.0) +
+                params.chi_d[1] * delayed_thermal;
+        }
+    }
+
+    std::vector<double> mode(static_cast<std::size_t>(full_size), 1.0);
+    if (!params.phi_1_0.empty() && !params.phi_2_0.empty()) {
+        for (int idx = 0; idx < size; ++idx) {
+            mode[static_cast<std::size_t>(idx)] = params.phi_1_0[static_cast<std::size_t>(idx)];
+            mode[static_cast<std::size_t>(size + idx)] = params.phi_2_0[static_cast<std::size_t>(idx)];
+        }
+    }
+
+    double normalization = Trapz([&]() {
+        std::vector<double> total(static_cast<std::size_t>(size), 0.0);
+        for (int idx = 0; idx < size; ++idx) {
+            total[static_cast<std::size_t>(idx)] =
+                mode[static_cast<std::size_t>(idx)] + mode[static_cast<std::size_t>(size + idx)];
+        }
+        return total;
+    }(), params.z);
+    for (double& value : mode) {
+        value /= std::max(normalization, 1.0e-12);
+    }
+
+    double k_eff = 1.0;
+    for (int iteration = 0; iteration < 80; ++iteration) {
+        const auto rhs = MatVec(source, mode);
+        auto updated = SolveLinearSystem(mass, rhs);
+        for (double& value : updated) {
+            value = std::abs(value);
+        }
+
+        std::vector<double> total(static_cast<std::size_t>(size), 0.0);
+        for (int idx = 0; idx < size; ++idx) {
+            total[static_cast<std::size_t>(idx)] =
+                updated[static_cast<std::size_t>(idx)] + updated[static_cast<std::size_t>(size + idx)];
+        }
+        const double updated_norm = Trapz(total, params.z);
+        for (double& value : updated) {
+            value /= std::max(updated_norm, 1.0e-12);
+        }
+
+        const auto ay = MatVec(source, updated);
+        const auto by = MatVec(mass, updated);
+        k_eff = Dot(updated, ay) / std::max(Dot(updated, by), 1.0e-12);
+
+        double delta = 0.0;
+        for (std::size_t idx = 0; idx < mode.size(); ++idx) {
+            delta = std::max(delta, std::abs(updated[idx] - mode[idx]));
+        }
+        mode = updated;
+        if (delta < 1.0e-10) {
+            break;
+        }
+    }
+
+    CriticalMode result;
+    result.k_eff = k_eff;
+    result.phi_1.assign(mode.begin(), mode.begin() + size);
+    result.phi_2.assign(mode.begin() + size, mode.end());
+    return result;
+}
+
+void InitializePointKineticsState(Parameters& params, double effective_beta_total) {
+    msr_shared::initialize_point_kinetics_state(
+        params.beta.data(),
+        params.lambda_i.data(),
+        params.Beta,
+        effective_beta_total,
+        params.prompt_generation_time_s,
+        &params.kinetics_amplitude,
+        params.kinetics_precursors.data(),
+        params.kinetics_beta_effective.data()
+    );
+}
+
+void AdvancePointKinetics(Parameters& params, double rho, double dt) {
+    msr_shared::advance_point_kinetics(
+        params.kinetics_beta_effective.data(),
+        params.lambda_i.data(),
+        params.prompt_generation_time_s,
+        rho,
+        dt,
+        &params.kinetics_amplitude,
+        params.kinetics_precursors.data()
+    );
+}
+
 std::vector<double> PackNeutronicsState(
     const std::vector<double>& phi_1,
     const std::vector<double>& phi_2,
@@ -665,12 +1023,14 @@ NeutronicsResult SolveNeutronics(
 ) {
     const double current_time = params.history_time_offset_s + static_cast<double>(step) * params.outer_dt;
     const auto precursor_inlet = PrecursorInletFromLoop(params, current_time);
-    const auto xs = BuildCrossSections(temperature_fuel, temperature_graphite, params, rod_position, external_reactivity);
-    params.last_global_rho = EstimateGlobalReactivity(xs, params);
+    const double xs_reactivity = params.point_kinetics_enabled ? 0.0 : external_reactivity;
+    const auto xs = BuildCrossSections(temperature_fuel, temperature_graphite, params, rod_position, xs_reactivity);
+    params.last_global_rho = external_reactivity;
 
     const int N = params.N;
     const double dz = params.dz;
     const double u_precursor = params.u_precursor;
+    const double amplitude_old = params.point_kinetics_enabled ? std::max(params.kinetics_amplitude, 1.0e-12) : 1.0;
 
     RhsFunction rhs = [&](double /*t*/, const std::vector<double>& y, std::vector<double>& dydt) {
         dydt.assign(y.size(), 0.0);
@@ -729,7 +1089,24 @@ NeutronicsResult SolveNeutronics(
         }
     };
 
-    const auto y_next = AdaptiveRk4(y_n, rhs, params);
+    std::vector<double> y_start = y_n;
+    if (params.point_kinetics_enabled) {
+        for (double& value : y_start) {
+            value /= amplitude_old;
+        }
+    }
+    auto y_next = AdaptiveRk4(y_start, rhs, params);
+
+    if (params.point_kinetics_enabled) {
+        const double beta_scale = params.last_effective_beta / std::max(params.Beta, 1.0e-12);
+        for (int group = 0; group < kPrecursorGroups; ++group) {
+            params.kinetics_beta_effective[group] = params.beta[group] * beta_scale;
+        }
+        AdvancePointKinetics(params, external_reactivity, params.outer_dt);
+        for (double& value : y_next) {
+            value *= params.kinetics_amplitude;
+        }
+    }
 
     std::vector<double> phi_1;
     std::vector<double> phi_2;
@@ -753,6 +1130,21 @@ NeutronicsResult SolveNeutronics(
         q_prime[static_cast<std::size_t>(idx)] =
             params.A_f[static_cast<std::size_t>(idx)] * q_vol;
     }
+
+    std::vector<double> F(static_cast<std::size_t>(N), 0.0);
+    std::vector<double> delayed_source(static_cast<std::size_t>(N), 0.0);
+    for (int idx = 0; idx < N; ++idx) {
+        F[static_cast<std::size_t>(idx)] =
+            xs.nu_sigma_f[0][static_cast<std::size_t>(idx)] * phi_1[static_cast<std::size_t>(idx)] +
+            xs.nu_sigma_f[1][static_cast<std::size_t>(idx)] * phi_2[static_cast<std::size_t>(idx)];
+        for (int group = 0; group < kPrecursorGroups; ++group) {
+            delayed_source[static_cast<std::size_t>(idx)] +=
+                params.lambda_i[group] * C[group][static_cast<std::size_t>(idx)];
+        }
+    }
+    params.last_effective_beta =
+        Trapz(delayed_source, params.z) / std::max(Trapz(F, params.z), 1.0e-12);
+    params.last_neutron_amplitude = params.point_kinetics_enabled ? params.kinetics_amplitude : 1.0;
 
     return {y_next, q_prime};
 }
@@ -918,12 +1310,16 @@ double PowerPlantTemp(double heater_outlet, Parameters& params, int step) {
 
     const double T2r = T2 + delta_recuperation;
     const double T4r = T4 - delta_recuperation;
-    const double mass_flow = params.brayton_mdot;
+    const double heater_duty_per_kg = params.c_p_sss * std::max(T3 - T2r, 0.0);
+    double mass_flow = params.brayton_mdot;
+    if (heater_duty_per_kg > 0.0 && std::isfinite(params.brayton_available_heat_W)) {
+        mass_flow = std::min(params.brayton_mdot, params.brayton_available_heat_W / heater_duty_per_kg);
+    }
     const double cp_b = params.c_p_sss;
     const double W_c = mass_flow * cp_b * std::max(T2 - T1, 0.0);
     const double W_t = mass_flow * cp_b * std::max(T3 - T4, 0.0);
     const double W_net = W_t - W_c;
-    const double Q_in = mass_flow * cp_b * std::max(T3 - T2r, 0.0);
+    const double Q_in = mass_flow * heater_duty_per_kg;
     const double Q_out = mass_flow * cp_b * std::max(T4r - T1, 0.0);
 
     params.last_power_plant = {
@@ -939,102 +1335,201 @@ double PowerPlantTemp(double heater_outlet, Parameters& params, int step) {
         W_net,
         Q_in,
         Q_out,
+        params.brayton_available_heat_W,
+        mass_flow,
         W_net / std::max(Q_in, 1.0e-12)
     };
     return T2r;
+}
+
+void UpdateSteadyStateNeutronics(
+    Parameters& params,
+    const std::vector<double>& temperature_fuel,
+    const std::vector<double>& temperature_graphite,
+    std::vector<double>& q_prime
+) {
+    const auto raw_xs = BuildCrossSections(
+        temperature_fuel,
+        temperature_graphite,
+        params,
+        0.0,
+        0.0,
+        1.0
+    );
+    const auto raw_mode = SolveCriticalMode(raw_xs, params);
+    params.critical_fission_scale = 1.0 / std::max(raw_mode.k_eff, 1.0e-12);
+
+    const auto xs = BuildCrossSections(temperature_fuel, temperature_graphite, params, 0.0, 0.0);
+    const auto mode = SolveCriticalMode(xs, params);
+
+    std::vector<double> fission_source(static_cast<std::size_t>(params.N), 0.0);
+    for (int idx = 0; idx < params.N; ++idx) {
+        fission_source[static_cast<std::size_t>(idx)] =
+            xs.nu_sigma_f[0][static_cast<std::size_t>(idx)] * mode.phi_1[static_cast<std::size_t>(idx)] +
+            xs.nu_sigma_f[1][static_cast<std::size_t>(idx)] * mode.phi_2[static_cast<std::size_t>(idx)];
+    }
+    const auto precursors = SolvePrecursorGroupsSteadyState(fission_source, params);
+
+    std::vector<double> delayed_source(static_cast<std::size_t>(params.N), 0.0);
+    for (int idx = 0; idx < params.N; ++idx) {
+        for (int group = 0; group < kPrecursorGroups; ++group) {
+            delayed_source[static_cast<std::size_t>(idx)] +=
+                params.lambda_i[group] * precursors[group][static_cast<std::size_t>(idx)];
+        }
+    }
+
+    std::vector<double> q_vol_unscaled(static_cast<std::size_t>(params.N), 0.0);
+    for (int idx = 0; idx < params.N; ++idx) {
+        q_vol_unscaled[static_cast<std::size_t>(idx)] =
+            xs.sigma_f[0][static_cast<std::size_t>(idx)] * mode.phi_1[static_cast<std::size_t>(idx)] +
+            xs.sigma_f[1][static_cast<std::size_t>(idx)] * mode.phi_2[static_cast<std::size_t>(idx)];
+    }
+
+    std::vector<double> linear_power(static_cast<std::size_t>(params.N), 0.0);
+    for (int idx = 0; idx < params.N; ++idx) {
+        linear_power[static_cast<std::size_t>(idx)] =
+            params.A_f[static_cast<std::size_t>(idx)] * q_vol_unscaled[static_cast<std::size_t>(idx)];
+    }
+    const double raw_power = Trapz(linear_power, params.z);
+    params.power_scale = params.nominal_total_power / std::max(raw_power, 1.0e-12);
+
+    q_prime.resize(static_cast<std::size_t>(params.N), 0.0);
+    for (int idx = 0; idx < params.N; ++idx) {
+        q_prime[static_cast<std::size_t>(idx)] =
+            params.power_scale * linear_power[static_cast<std::size_t>(idx)];
+    }
+
+    params.phi_1_0 = mode.phi_1;
+    params.phi_2_0 = mode.phi_2;
+    params.phi_0.clear();
+    params.phi_0.insert(params.phi_0.end(), mode.phi_1.begin(), mode.phi_1.end());
+    params.phi_0.insert(params.phi_0.end(), mode.phi_2.begin(), mode.phi_2.end());
+    params.c0_groups = precursors;
+    params.c0.clear();
+    for (const auto& group : precursors) {
+        params.c0.insert(params.c0.end(), group.begin(), group.end());
+    }
+
+    std::array<double, kPrecursorGroups> seed_outlet{};
+    for (int group = 0; group < kPrecursorGroups; ++group) {
+        seed_outlet[group] = precursors[group].back();
+    }
+    params.precursor_loop_state = InitializePrecursorLoopState(
+        seed_outlet,
+        params.outer_dt,
+        params.precursor_loop_tau
+    );
+    params.reference_multiplication_ratio = mode.k_eff;
+    params.last_effective_beta =
+        Trapz(delayed_source, params.z) / std::max(Trapz(fission_source, params.z), 1.0e-12);
+    InitializePointKineticsState(params, params.last_effective_beta);
 }
 
 void InitializeSystemSteadyState(Parameters& params) {
     const int N = params.N;
     const int Nx = params.Nx;
 
-    auto y_n = PackNeutronicsState(params.phi_1_0, params.phi_2_0, params.c0_groups);
-    auto y_th = PackThermalState(params.initialS, params.initialG);
-    auto y_hx1 = PackThermalState(params.u_init, params.v_init);
-    auto y_hx2 = PackThermalState(params.u2_init, params.v2_init);
-
     std::vector<double> temperature_fuel = params.initialS;
     std::vector<double> temperature_graphite = params.initialG;
     std::vector<double> q_prime(static_cast<std::size_t>(N), 0.0);
 
-    double Tss_HX2_0 = params.Tss_in;
-    double Ts_HX1_0 = params.Ts_in;
-    double Tsss_pp_0 = params.Tsss_in;
+    const int max_outer_iterations = 8;
+    const double convergence_tol = 5.0e-4;
 
-    std::deque<double> buffer_hx_c;
-    std::deque<double> buffer_c_hx;
-    std::deque<double> buffer_r_hx;
-    std::deque<double> buffer_hx_r;
-    std::deque<double> buffer_r_pp;
-    std::deque<double> buffer_pp_r;
+    for (int outer = 0; outer < max_outer_iterations; ++outer) {
+        UpdateSteadyStateNeutronics(params, temperature_fuel, temperature_graphite, q_prime);
 
-    for (int step = 0; step < params.steady_state_steps; ++step) {
-        const auto neutronics = SolveNeutronics(
-            params,
-            y_n,
-            temperature_fuel,
-            temperature_graphite,
-            0.0,
-            0.0,
-            step
-        );
-        y_n = neutronics.y_n;
-        q_prime = neutronics.q_prime;
+        auto y_th = PackThermalState(temperature_fuel, temperature_graphite);
+        auto y_hx1 = PackThermalState(params.u_init, params.v_init);
+        auto y_hx2 = PackThermalState(params.u2_init, params.v2_init);
 
-        const double Ts_core_0 = (params.core_inlet_mode == "hx_coupled")
-            ? TransportDelay(Ts_HX1_0, params.tau_hx_c, params.Ts_in, buffer_hx_c, step, params.outer_dt)
-            : params.Ts_in;
+        double Tss_HX2_0 = params.Tss_in;
+        double Ts_HX1_0 = params.Ts_in;
+        double Tsss_pp_0 = params.Tsss_in;
 
-        y_th = SolveThermalHydraulics(params, y_th, q_prime, Ts_core_0);
-        temperature_fuel.assign(y_th.begin(), y_th.begin() + N);
-        temperature_graphite.assign(y_th.begin() + N, y_th.begin() + 2 * N);
-        const double Ts_core_L = temperature_fuel.back();
+        std::deque<double> buffer_hx_c = params.buffer_hx_c_init;
+        std::deque<double> buffer_c_hx = params.buffer_c_hx_init;
+        std::deque<double> buffer_r_hx = params.buffer_r_hx_init;
+        std::deque<double> buffer_hx_r = params.buffer_hx_r_init;
+        std::deque<double> buffer_r_pp = params.buffer_r_pp_init;
+        std::deque<double> buffer_pp_r = params.buffer_pp_r_init;
 
-        const double Ts_HX1_L = TransportDelay(Ts_core_L, params.tau_c_hx, params.Ts_out, buffer_c_hx, step, params.outer_dt);
-        const double Tss_HX1_0 = TransportDelay(Tss_HX2_0, params.tau_r_hx, params.Tss_in, buffer_r_hx, step, params.outer_dt);
-        y_hx1 = SolveHeatExchanger(params, y_hx1, Ts_HX1_L, Tss_HX1_0, Hx1Config(params));
-        const std::vector<double> Ts_HX1(y_hx1.begin(), y_hx1.begin() + Nx);
-        const std::vector<double> Tss_HX1(y_hx1.begin() + Nx, y_hx1.begin() + 2 * Nx);
-        Ts_HX1_0 = Ts_HX1.front();
-        const double Tss_HX1_L = Tss_HX1.back();
+        double Ts_core_0 = params.Ts_in;
+        double Ts_core_L = temperature_fuel.back();
+        double Tss_HX1_0 = params.Tss_in;
+        double Tss_HX1_L = params.Tss_out;
+        double Tsss_HX2_0 = params.Tsss_in;
+        double Tsss_HX2_L = params.Tsss_out;
+        double Tss_HX2_L = params.Tss_out;
+        double Tsss_pp_L = params.Tsss_out;
 
-        const double Tss_HX2_L = TransportDelay(Tss_HX1_L, params.tau_hx_r, params.Tss_out, buffer_hx_r, step, params.outer_dt);
-        const double Tsss_HX2_0 = TransportDelay(Tsss_pp_0, params.tau_pp_r, params.Tsss_in, buffer_pp_r, step, params.outer_dt);
-        y_hx2 = SolveHeatExchanger(params, y_hx2, Tss_HX2_L, Tsss_HX2_0, Hx2Config(params));
-        const std::vector<double> Tss_HX2(y_hx2.begin(), y_hx2.begin() + Nx);
-        const std::vector<double> Tsss_HX2(y_hx2.begin() + Nx, y_hx2.begin() + 2 * Nx);
-        Tss_HX2_0 = Tss_HX2.front();
-        const double Tsss_HX2_L = Tsss_HX2.back();
+        for (int step = 0; step < params.steady_state_steps; ++step) {
+            Ts_core_0 = (params.core_inlet_mode == "hx_coupled")
+                ? TransportDelay(Ts_HX1_0, params.tau_hx_c, params.Ts_in, buffer_hx_c, step, params.outer_dt)
+                : params.Ts_in;
 
-        const double Tsss_pp_L = TransportDelay(Tsss_HX2_L, params.tau_r_pp, params.Tsss_out, buffer_r_pp, step, params.outer_dt);
-        Tsss_pp_0 = PowerPlantTemp(Tsss_pp_L, params, step);
+            y_th = SolveThermalHydraulics(params, y_th, q_prime, Ts_core_0);
+            temperature_fuel.assign(y_th.begin(), y_th.begin() + N);
+            temperature_graphite.assign(y_th.begin() + N, y_th.begin() + 2 * N);
+            Ts_core_L = temperature_fuel.back();
+
+            const double Ts_HX1_L = TransportDelay(Ts_core_L, params.tau_c_hx, params.Ts_out, buffer_c_hx, step, params.outer_dt);
+            Tss_HX1_0 = TransportDelay(Tss_HX2_0, params.tau_r_hx, params.Tss_in, buffer_r_hx, step, params.outer_dt);
+            y_hx1 = SolveHeatExchanger(params, y_hx1, Ts_HX1_L, Tss_HX1_0, Hx1Config(params));
+            const std::vector<double> Ts_HX1(y_hx1.begin(), y_hx1.begin() + Nx);
+            const std::vector<double> Tss_HX1(y_hx1.begin() + Nx, y_hx1.begin() + 2 * Nx);
+            Ts_HX1_0 = Ts_HX1.front();
+            Tss_HX1_L = Tss_HX1.back();
+
+            Tss_HX2_L = TransportDelay(Tss_HX1_L, params.tau_hx_r, params.Tss_out, buffer_hx_r, step, params.outer_dt);
+            Tsss_HX2_0 = TransportDelay(Tsss_pp_0, params.tau_pp_r, params.Tsss_in, buffer_pp_r, step, params.outer_dt);
+            y_hx2 = SolveHeatExchanger(params, y_hx2, Tss_HX2_L, Tsss_HX2_0, Hx2Config(params));
+            const std::vector<double> Tss_HX2(y_hx2.begin(), y_hx2.begin() + Nx);
+            const std::vector<double> Tsss_HX2(y_hx2.begin() + Nx, y_hx2.begin() + 2 * Nx);
+            Tss_HX2_0 = Tss_HX2.front();
+            Tsss_HX2_L = Tsss_HX2.back();
+
+            Tsss_pp_L = TransportDelay(Tsss_HX2_L, params.tau_r_pp, params.Tsss_out, buffer_r_pp, step, params.outer_dt);
+            params.brayton_available_heat_W = Trapz(q_prime, params.z);
+            Tsss_pp_0 = PowerPlantTemp(Tsss_pp_L, params, step);
+        }
+
+        double residual = 0.0;
+        for (int idx = 0; idx < N; ++idx) {
+            residual = std::max(residual, std::abs(temperature_fuel[static_cast<std::size_t>(idx)] - params.T_s_ref[static_cast<std::size_t>(idx)]));
+            residual = std::max(residual, std::abs(temperature_graphite[static_cast<std::size_t>(idx)] - params.T_gr_ref[static_cast<std::size_t>(idx)]));
+        }
+
+        params.T_s_ref = temperature_fuel;
+        params.T_gr_ref = temperature_graphite;
+        params.initialS = temperature_fuel;
+        params.initialG = temperature_graphite;
+        params.u_init = std::vector<double>(y_hx1.begin(), y_hx1.begin() + Nx);
+        params.v_init = std::vector<double>(y_hx1.begin() + Nx, y_hx1.begin() + 2 * Nx);
+        params.u2_init = std::vector<double>(y_hx2.begin(), y_hx2.begin() + Nx);
+        params.v2_init = std::vector<double>(y_hx2.begin() + Nx, y_hx2.begin() + 2 * Nx);
+        params.buffer_hx_c_init = buffer_hx_c;
+        params.buffer_c_hx_init = buffer_c_hx;
+        params.buffer_r_hx_init = buffer_r_hx;
+        params.buffer_hx_r_init = buffer_hx_r;
+        params.buffer_r_pp_init = buffer_r_pp;
+        params.buffer_pp_r_init = buffer_pp_r;
+        params.Ts_in = Ts_core_0;
+        params.Ts_out = Ts_core_L;
+        params.Tss_in = Tss_HX1_0;
+        params.Tss_out = Tss_HX2_L;
+        params.Tsss_in = Tsss_HX2_0;
+        params.Tsss_out = Tsss_pp_L;
+
+        if (residual < convergence_tol) {
+            break;
+        }
     }
 
-    std::vector<double> phi_1;
-    std::vector<double> phi_2;
-    std::array<std::vector<double>, kPrecursorGroups> C;
-    UnpackNeutronicsState(y_n, N, phi_1, phi_2, C);
-
-    params.phi_1_0 = phi_1;
-    params.phi_2_0 = phi_2;
-    params.phi_0.clear();
-    params.phi_0.insert(params.phi_0.end(), phi_1.begin(), phi_1.end());
-    params.phi_0.insert(params.phi_0.end(), phi_2.begin(), phi_2.end());
-    params.c0_groups = C;
-    params.c0.clear();
-    for (const auto& group : C) {
-        params.c0.insert(params.c0.end(), group.begin(), group.end());
-    }
-    params.initialS = std::vector<double>(y_th.begin(), y_th.begin() + N);
-    params.initialG = std::vector<double>(y_th.begin() + N, y_th.begin() + 2 * N);
-    params.T_s_ref = params.initialS;
-    params.T_gr_ref = params.initialG;
-    params.u_init = std::vector<double>(y_hx1.begin(), y_hx1.begin() + Nx);
-    params.v_init = std::vector<double>(y_hx1.begin() + Nx, y_hx1.begin() + 2 * Nx);
-    params.u2_init = std::vector<double>(y_hx2.begin(), y_hx2.begin() + Nx);
-    params.v2_init = std::vector<double>(y_hx2.begin() + Nx, y_hx2.begin() + 2 * Nx);
     params.history_step_offset = params.steady_state_steps;
     params.history_time_offset_s = static_cast<double>(params.steady_state_steps) * params.outer_dt;
+    params.last_global_rho = 0.0;
+    params.brayton_available_heat_W = params.nominal_total_power;
 }
 
 Parameters GenerateParameters() {
@@ -1046,6 +1541,11 @@ Parameters GenerateParameters() {
     params.neutronics_state_size = (kEnergyGroups + kPrecursorGroups) * params.N;
     params.Beta = std::accumulate(params.beta.begin(), params.beta.end(), 0.0);
     params.d_e = {2.0 * params.dz, 2.0 * params.dz};
+    params.nominal_total_power =
+        (1448.0 * params.v_core / std::max(params.L, 1.0e-12)) *
+        params.c_p_s *
+        std::max(params.bc_sL - params.bc_s0, 1.0);
+    params.brayton_available_heat_W = params.nominal_total_power;
 
     params.initialS.resize(static_cast<std::size_t>(params.N), 0.0);
     params.initialG.resize(static_cast<std::size_t>(params.N), 0.0);
@@ -1178,6 +1678,8 @@ Parameters GenerateParameters() {
     }
     params.precursor_loop_tau = params.tau_l;
     params.precursor_loop_state = InitializePrecursorLoopState(seed_outlet, params.outer_dt, params.tau_l);
+    params.last_effective_beta = params.Beta;
+    InitializePointKineticsState(params, params.last_effective_beta);
 
     params.rho_s = 1448.0 / (params.A_s * params.L);
     params.rho_gr = 3687.0 / (params.A_gr * params.L);
@@ -1256,12 +1758,12 @@ SimulationOutput RunSimulation(Parameters& params, int time_span, const std::fil
     double Ts_HX1_0 = params.Ts_in;
     double Tsss_pp_0 = params.Tsss_in;
 
-    std::deque<double> buffer_hx_c;
-    std::deque<double> buffer_c_hx;
-    std::deque<double> buffer_r_hx;
-    std::deque<double> buffer_hx_r;
-    std::deque<double> buffer_r_pp;
-    std::deque<double> buffer_pp_r;
+    std::deque<double> buffer_hx_c = params.buffer_hx_c_init;
+    std::deque<double> buffer_c_hx = params.buffer_c_hx_init;
+    std::deque<double> buffer_r_hx = params.buffer_r_hx_init;
+    std::deque<double> buffer_hx_r = params.buffer_hx_r_init;
+    std::deque<double> buffer_r_pp = params.buffer_r_pp_init;
+    std::deque<double> buffer_pp_r = params.buffer_pp_r_init;
 
     std::vector<double> temperature_fuel = params.initialS;
     std::vector<double> temperature_graphite = params.initialG;
@@ -1288,13 +1790,15 @@ SimulationOutput RunSimulation(Parameters& params, int time_span, const std::fil
 
     const int mid_idx = params.N / 2;
     for (int step = 0; step < time_span; ++step) {
+        const double current_time = static_cast<double>(step) * params.outer_dt;
+        const double external_reactivity = ExternalReactivityAtTime(params, current_time);
         const auto neutronics = SolveNeutronics(
             params,
             y_n,
             temperature_fuel,
             temperature_graphite,
             0.0,
-            0.0,
+            external_reactivity,
             step
         );
         y_n = neutronics.y_n;
@@ -1332,11 +1836,12 @@ SimulationOutput RunSimulation(Parameters& params, int time_span, const std::fil
         const double Tsss_HX2_L = Tsss_HX2.back();
 
         const double Tsss_pp_L = TransportDelay(Tsss_HX2_L, params.tau_r_pp, params.Tsss_out, buffer_r_pp, step, params.outer_dt);
+        params.brayton_available_heat_W = Trapz(q_prime, params.z);
         Tsss_pp_0 = PowerPlantTemp(Tsss_pp_L, params, step);
 
         output.time[static_cast<std::size_t>(step)] = static_cast<double>(step) * params.outer_dt;
         output.phi_mid[static_cast<std::size_t>(step)] = phi[static_cast<std::size_t>(mid_idx)];
-        output.rho[static_cast<std::size_t>(step)] = params.last_global_rho;
+        output.rho[static_cast<std::size_t>(step)] = external_reactivity;
         output.power[static_cast<std::size_t>(step)] = Trapz(q_prime, params.z);
         output.fuel_mid[static_cast<std::size_t>(step)] = temperature_fuel[static_cast<std::size_t>(mid_idx)];
         output.graphite_mid[static_cast<std::size_t>(step)] = temperature_graphite[static_cast<std::size_t>(mid_idx)];
@@ -1365,14 +1870,24 @@ SimulationOutput RunSimulation(Parameters& params, int time_span, const std::fil
 int main(int argc, char** argv) {
     int steps = 600;
     std::filesystem::path output_dir = "cpp/results";
+    double insertion_pcm = 0.0;
+    double insertion_time_s = 300.0;
     if (argc >= 2) {
         steps = std::stoi(argv[1]);
     }
     if (argc >= 3) {
         output_dir = argv[2];
     }
+    if (argc >= 4) {
+        insertion_pcm = std::stod(argv[3]);
+    }
+    if (argc >= 5) {
+        insertion_time_s = std::stod(argv[4]);
+    }
 
     auto params = msr::GenerateParameters();
+    params.reactivity_insertion_pcm = insertion_pcm;
+    params.reactivity_insertion_time_s = insertion_time_s;
     const auto output = msr::RunSimulation(params, steps, output_dir);
     const std::size_t last = output.time.empty() ? 0 : output.time.size() - 1;
     std::cout

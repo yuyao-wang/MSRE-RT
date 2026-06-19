@@ -1,0 +1,643 @@
+===== poll 1 2026-06-18T12:17:26 =====
+--- VIVADO
+
+
+   Id       CPU StartTime
+
+   --       --- ---------
+
+ 1272  92.21875 6/18/2026 12:14:07 PM
+
+26336 23.796875 6/18/2026 12:15:48 PM
+
+
+
+
+
+STATUS BIT=0 LTX=0
+--- SYNTH_SUB
+SYNTH_SUB_PENDING
+--- SYNTH_TOP
+SYNTH_TOP_PENDING
+--- IMPL
+IMPL_PENDING
+===== poll 2 2026-06-18T12:22:27 =====
+--- VIVADO
+
+
+   Id        CPU StartTime
+
+   --        --- ---------
+
+ 1272 100.109375 6/18/2026 12:14:07 PM
+
+10348 163.890625 6/18/2026 12:18:29 PM
+
+
+
+
+
+STATUS BIT=0 LTX=0
+--- SYNTH_SUB
+
+
+
+
+FullName      : C:\Users\yuyao\w\b7t1\tbv\tbv.runs\tb_batch_0_0_synth_1\runme.log
+
+Length        : 60848
+
+LastWriteTime : 6/18/2026 12:20:16 PM
+
+
+
+
+
+
+
+INFO: [Synth 8-6157] synthesizing module 'msr_transient_batch_bench_kernel_dexp_64ns_64ns_64_8_full_dsp_1_ip' [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/ip/msr_transient_batch_bench_kernel_dexp_64ns_64ns_64_8_full_dsp_1_ip.v:53]
+
+WARNING: [Synth 8-5974] attribute "use_dsp48" has been deprecated, please use "use_dsp" instead
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_dexp_64ns_64ns_64_8_full_dsp_1_ip' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/ip/msr_transient_batch_bench_kernel_dexp_64ns_64ns_64_8_full_dsp_1_ip.v:53]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_dexp_64ns_64ns_64_8_full_dsp_1' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_dexp_64ns_64ns_64_8_full_dsp_1.v:9]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_neutronics_kernel_ResidentStepState_6' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_neutronics_kernel_ResidentStepState_6.v:9]
+
+INFO: [Synth 8-6157] synthesizing module 'msr_transient_batch_bench_kernel_delay_line_update_ResidentDelayLine_s' [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_delay_line_update_ResidentDelayLine_s.v:9]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_delay_line_update_ResidentDelayLine_s' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_delay_line_update_ResidentDelayLine_s.v:9]
+
+INFO: [Synth 8-6157] synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s' [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s.v:9]
+
+INFO: [Synth 8-6157] synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_k1_fuel_RAM_AUTO_1R1W' [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_k1_fuel_RAM_AUTO_1R1W.v:7]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_k1_fuel_RAM_AUTO_1R1W' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_k1_fuel_RAM_AUTO_1R1W.v:7]
+
+INFO: [Synth 8-6157] synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_fuel_stage_RAM_AUTO_1R1W' [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_fuel_stage_RAM_AUTO_1R1W.v:7]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_fuel_stage_RAM_AUTO_1R1W' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_fuel_stage_RAM_AUTO_1R1W.v:7]
+
+INFO: [Synth 8-6157] synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_graphite_stage_RAM_1WNR_AUTO_1R1W' [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_graphite_stage_RAM_1WNR_AUTO_1R1W.v:7]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_graphite_stage_RAM_1WNR_AUTO_1R1W' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s_graphite_stage_RAM_1WNR_AUTO_1R1W.v:7]
+
+INFO: [Synth 8-6157] synthesizing module 'msr_transient_batch_bench_kernel_thermal_rhs_float_s' [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_rhs_float_s.v:9]
+
+INFO: [Synth 8-6157] synthesizing module 'msr_transient_batch_bench_kernel_thermal_rhs_float_Pipeline_VITIS_LOOP_1508_1' [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_rhs_float_Pipeline_VITIS_LOOP_1508_1.v:9]
+
+INFO: [Common 17-14] Message 'Synth 8-6157' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_rhs_float_Pipeline_VITIS_LOOP_1508_1' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_rhs_float_Pipeline_VITIS_LOOP_1508_1.v:9]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_rhs_float_s' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_rhs_float_s.v:9]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_load_thermal_stage_float_s' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_load_thermal_stage_float_s.v:9]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_rhs_double_Pipeline_VITIS_LOOP_1508_1' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_rhs_double_Pipeline_VITIS_LOOP_1508_1.v:9]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_rhs_double_s' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_rhs_double_s.v:9]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_Pipeline_VITIS_LOOP_1616_2' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_Pipeline_VITIS_LOOP_1616_2.v:9]
+
+INFO: [Synth 8-6155] done synthesizing module 'msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s' (0#1) [c:/Users/yuyao/w/b7t1/tbv/tbv.gen/sources_1/bd/tb/ipshared/7964/hdl/verilog/msr_transient_batch_bench_kernel_thermal_kernel_ResidentStepState_s.v:9]
+
+INFO: [Common 17-14] Message 'Synth 8-6155' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+
+--- SYNTH_TOP
+SYNTH_TOP_PENDING
+--- IMPL
+IMPL_PENDING
+===== poll 3 2026-06-18T12:27:28 =====
+--- VIVADO
+
+
+   Id      CPU StartTime
+
+   --      --- ---------
+
+ 1272 107.6875 6/18/2026 12:14:07 PM
+
+10348 464.5625 6/18/2026 12:18:29 PM
+
+
+
+
+
+STATUS BIT=0 LTX=0
+--- SYNTH_SUB
+
+
+
+
+FullName      : C:\Users\yuyao\w\b7t1\tbv\tbv.runs\tb_batch_0_0_synth_1\runme.log
+
+Length        : 79625
+
+LastWriteTime : 6/18/2026 12:25:12 PM
+
+
+
+
+
+
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized23 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized17 is either unconnected or has no load
+
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+
+---------------------------------------------------------------------------------
+
+Finished RTL Elaboration : Time (s): cpu = 00:06:02 ; elapsed = 00:06:13 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Start Handling Custom Attributes
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished Handling Custom Attributes : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+--- SYNTH_TOP
+SYNTH_TOP_PENDING
+--- IMPL
+IMPL_PENDING
+===== poll 4 2026-06-18T12:32:29 =====
+--- VIVADO
+
+
+   Id        CPU StartTime
+
+   --        --- ---------
+
+ 1272 115.203125 6/18/2026 12:14:07 PM
+
+10348 765.546875 6/18/2026 12:18:29 PM
+
+
+
+
+
+STATUS BIT=0 LTX=0
+--- SYNTH_SUB
+
+
+
+
+FullName      : C:\Users\yuyao\w\b7t1\tbv\tbv.runs\tb_batch_0_0_synth_1\runme.log
+
+Length        : 79625
+
+LastWriteTime : 6/18/2026 12:25:12 PM
+
+
+
+
+
+
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized23 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized17 is either unconnected or has no load
+
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+
+---------------------------------------------------------------------------------
+
+Finished RTL Elaboration : Time (s): cpu = 00:06:02 ; elapsed = 00:06:13 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Start Handling Custom Attributes
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished Handling Custom Attributes : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+--- SYNTH_TOP
+SYNTH_TOP_PENDING
+--- IMPL
+IMPL_PENDING
+===== poll 5 2026-06-18T12:37:30 =====
+--- VIVADO
+
+
+   Id         CPU StartTime
+
+   --         --- ---------
+
+ 1272      122.75 6/18/2026 12:14:07 PM
+
+10348 1066.828125 6/18/2026 12:18:29 PM
+
+
+
+
+
+STATUS BIT=0 LTX=0
+--- SYNTH_SUB
+
+
+
+
+FullName      : C:\Users\yuyao\w\b7t1\tbv\tbv.runs\tb_batch_0_0_synth_1\runme.log
+
+Length        : 79625
+
+LastWriteTime : 6/18/2026 12:25:12 PM
+
+
+
+
+
+
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized23 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized17 is either unconnected or has no load
+
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+
+---------------------------------------------------------------------------------
+
+Finished RTL Elaboration : Time (s): cpu = 00:06:02 ; elapsed = 00:06:13 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Start Handling Custom Attributes
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished Handling Custom Attributes : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+--- SYNTH_TOP
+SYNTH_TOP_PENDING
+--- IMPL
+IMPL_PENDING
+===== poll 6 2026-06-18T12:42:31 =====
+--- VIVADO
+
+
+   Id        CPU StartTime
+
+   --        --- ---------
+
+ 1272 130.203125 6/18/2026 12:14:07 PM
+
+10348   1366.375 6/18/2026 12:18:29 PM
+
+
+
+
+
+STATUS BIT=0 LTX=0
+--- SYNTH_SUB
+
+
+
+
+FullName      : C:\Users\yuyao\w\b7t1\tbv\tbv.runs\tb_batch_0_0_synth_1\runme.log
+
+Length        : 79625
+
+LastWriteTime : 6/18/2026 12:25:12 PM
+
+
+
+
+
+
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized23 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized17 is either unconnected or has no load
+
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+
+---------------------------------------------------------------------------------
+
+Finished RTL Elaboration : Time (s): cpu = 00:06:02 ; elapsed = 00:06:13 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Start Handling Custom Attributes
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished Handling Custom Attributes : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+--- SYNTH_TOP
+SYNTH_TOP_PENDING
+--- IMPL
+IMPL_PENDING
+===== poll 7 2026-06-18T12:47:32 =====
+--- VIVADO
+
+
+   Id        CPU StartTime
+
+   --        --- ---------
+
+ 1272 137.828125 6/18/2026 12:14:07 PM
+
+10348  1658.0625 6/18/2026 12:18:29 PM
+
+
+
+
+
+STATUS BIT=0 LTX=0
+--- SYNTH_SUB
+
+
+
+
+FullName      : C:\Users\yuyao\w\b7t1\tbv\tbv.runs\tb_batch_0_0_synth_1\runme.log
+
+Length        : 79625
+
+LastWriteTime : 6/18/2026 12:25:12 PM
+
+
+
+
+
+
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized23 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized17 is either unconnected or has no load
+
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+
+---------------------------------------------------------------------------------
+
+Finished RTL Elaboration : Time (s): cpu = 00:06:02 ; elapsed = 00:06:13 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Start Handling Custom Attributes
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished Handling Custom Attributes : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+--- SYNTH_TOP
+SYNTH_TOP_PENDING
+--- IMPL
+IMPL_PENDING
+===== poll 8 2026-06-18T12:52:34 =====
+--- VIVADO
+
+
+   Id        CPU StartTime
+
+   --        --- ---------
+
+ 1272 145.484375 6/18/2026 12:14:07 PM
+
+10348 1949.40625 6/18/2026 12:18:29 PM
+
+
+
+
+
+STATUS BIT=0 LTX=0
+--- SYNTH_SUB
+
+
+
+
+FullName      : C:\Users\yuyao\w\b7t1\tbv\tbv.runs\tb_batch_0_0_synth_1\runme.log
+
+Length        : 79890
+
+LastWriteTime : 6/18/2026 12:50:31 PM
+
+
+
+
+
+
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized21 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CE in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SCLR in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SSET in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port SINIT in module xbip_pipe_v3_0_7_viv__parameterized19 is either unconnected or has no load
+
+WARNING: [Synth 8-7129] Port CLK in module xbip_pipe_v3_0_7_viv__parameterized17 is either unconnected or has no load
+
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+
+---------------------------------------------------------------------------------
+
+Finished RTL Elaboration : Time (s): cpu = 00:06:02 ; elapsed = 00:06:13 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Start Handling Custom Attributes
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished Handling Custom Attributes : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:06:09 ; elapsed = 00:06:20 . Memory (MB): peak = 15145.078 ; gain = 13373.023
+
+---------------------------------------------------------------------------------
+
+Netlist sorting complete. Time (s): cpu = 00:07:06 ; elapsed = 00:07:35 . Memory (MB): peak = 28878.637 ; gain = 403.816
+
+INFO: [Netlist 29-17] Analyzing 85813 Unisim elements for replacement
+
+INFO: [Netlist 29-28] Unisim Transformation completed in 9 CPU seconds
+
+--- SYNTH_TOP
+SYNTH_TOP_PENDING
+--- IMPL
+IMPL_PENDING
+===== poll 9 2026-06-18T12:57:35 =====
+I n t e r n a l   W i n d o w s   P o w e r S h e l l   e r r o r .     L o a d i n g   m a n a g e d   W i n d o w s   P o w e r S h e l l   f a i l e d   w i t h   e r r o r   8 0 0 7 0 5 a f . 
+ 
+ 

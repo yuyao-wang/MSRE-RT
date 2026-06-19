@@ -1,0 +1,2 @@
+baseline_lat_min,baseline_lat_max,baseline_lat_min_raw,baseline_lat_max_raw,analytic_lat_min,analytic_lat_max,analytic_lat_min_raw,analytic_lat_max_raw,baseline_estimated_clock_ns,analytic_estimated_clock_ns,clock_ratio,latency_ratio,baseline_lut,analytic_lut,lut_ratio,baseline_ff,analytic_ff,ff_ratio,baseline_dsp,analytic_dsp,dsp_ratio,baseline_bram,analytic_bram,bram_ratio
+19079,19139,19079,19139,None,None,undef,undef,7.672,3593.586,468.4027632950991,None,185984,615052,3.30701565726084,159803,486227,3.0426650313198125,1486,6250,4.205921938088829,472,6,0.012711864406779662

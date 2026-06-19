@@ -1,0 +1,4 @@
+schedule_name,cycle_index,state_id,st_id,op_count,categories,calls,operators
+bop_step_kernel_n200_s1,1,1,1,7,"{""axi_read"": 7}",{},axi_read | axi_read | axi_read | axi_read | axi_read | axi_read | axi_read
+bop_step_kernel_n200_s1,2,2,2,1,"{""user_call"": 1}","{""bop_step_kernel_impl"": 1}",user_call:bop_step_kernel_impl
+bop_step_kernel_n200_s1,3,3,3,28,"{""other"": 1, ""spec_bits"": 7, ""spec_interface"": 18, ""spec_top"": 1, ""user_call"": 1}","{""bop_step_kernel_impl"": 1}",spec_top | spec_interface | spec_bits | spec_interface | spec_bits | spec_interface | spec_bits | spec_interface | spec_interface | spec_interface | spec_interface | spec_bits | spec_interface | spec_interface | spec_bits | spec_interface | spec_interface | spec_bits | spec_interface | spec_interface | spec_bits | spec_interface | spec_interface | spec_interface | spec_interface | spec_interface | user_call:bop_step_kernel_impl | other

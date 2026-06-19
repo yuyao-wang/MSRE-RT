@@ -5,6 +5,12 @@ from precursor_loop import initialize_precursor_loop_state
 from steady_state import initialize_system_steady_state
 
 
+DEFAULT_FUEL_FEEDBACK_SCALE = 0.051355558717543964
+DEFAULT_GRAPHITE_FEEDBACK_SCALE = 0.05562371812930603
+DEFAULT_FUEL_FEEDBACK_COEFF_PCM_PER_K = -8.481565036545959
+DEFAULT_GRAPHITE_FEEDBACK_COEFF_PCM_PER_K = -6.093839205518564
+
+
 def _fundamental_shape(z, dz, length):
     phase = (z + 0.5 * dz) / (length + dz)
     shape = np.sin(np.pi * phase)
@@ -21,8 +27,8 @@ def generate_parameters(
     L=172.0,
     N=80,
     A=4094.0,
-    nominal_total_power=1.0e5,
-    v_core=0.2,
+    nominal_total_power=None,
+    v_core=20.0,
     inlet_mode="recirculate",
     core_inlet_mode="hx_coupled",
     neutron_velocity=(0.55, 0.18),
@@ -44,7 +50,7 @@ def generate_parameters(
     L_HX=2.0,
     V_he_s=75.7e-3 / 23.6,
     V_he_ss=53.6e-3 / 23.6,
-    U_hx=500.0,
+    U_hx=5.0e5,
     M_he_s=342.0,
     M_he_ss=117.0,
     c_p_ss=2416.0,
@@ -60,7 +66,7 @@ def generate_parameters(
     L_HX2=2.0,
     V_he2_s=53.6e-3 / 23.6,
     V_he2_ss=33.6e-3 / 23.6,
-    U2_hx=500.0,
+    U2_hx=5.0e5,
     M_he2_s=117.0,
     M_he2_ss=100.0,
     c_p_sss=2416.0,
@@ -86,6 +92,9 @@ def generate_parameters(
     tau_r_pp=6.0,
     tau_pp_r=6.0,
     precursor_loop_efficiency=0.92,
+    feedback_scale_s=DEFAULT_FUEL_FEEDBACK_SCALE,
+    feedback_scale_gr=DEFAULT_GRAPHITE_FEEDBACK_SCALE,
+    external_reactivity_mode="fission_source",
     outer_dt=1.0,
     scale=1.0,
     use_steady_state_initialization=True,
@@ -100,6 +109,10 @@ def generate_parameters(
     lambda_i = np.asarray(lambda_i, dtype=float)
     beta_total = float(beta.sum())
     neutron_velocity = np.asarray(neutron_velocity, dtype=float)
+
+    if nominal_total_power is None:
+        mdot_core = Ms * v_core / max(L, 1.0e-12)
+        nominal_total_power = mdot_core * c_p_s * max(bc_sL - bc_s0, 1.0)
 
     initialS = bc_s0 + (bc_sL - bc_s0) * (0.2 + 0.8 * z / L)
     initialG = bc_g0 + (bc_gL - bc_g0) * (0.15 + 0.85 * z / L)
@@ -131,14 +144,14 @@ def generate_parameters(
     nu_sigma_f_ref = nu[:, None] * sigma_f_ref
     transverse_buckling_sq = np.zeros((2, N), dtype=float)
 
-    a_sigma_a_s = _group_profile([2.6e-6, 4.1e-6], np.ones(N))
-    a_sigma_a_gr = _group_profile([1.8e-6, 2.6e-6], np.ones(N))
-    a_sigma_s12_s = -5.5e-7 * np.ones(N)
-    a_sigma_s12_gr = -3.5e-7 * np.ones(N)
-    a_nu_sigma_f_s = _group_profile([-2.4e-6, -4.3e-6], np.ones(N))
-    a_nu_sigma_f_gr = _group_profile([-1.7e-6, -2.9e-6], np.ones(N))
-    a_D_s = _group_profile([2.0e-5, 1.2e-5], np.ones(N))
-    a_D_gr = _group_profile([1.2e-5, 8.0e-6], np.ones(N))
+    a_sigma_a_s = feedback_scale_s * _group_profile([2.6e-6, 4.1e-6], np.ones(N))
+    a_sigma_a_gr = feedback_scale_gr * _group_profile([1.8e-6, 2.6e-6], np.ones(N))
+    a_sigma_s12_s = feedback_scale_s * (-5.5e-7 * np.ones(N))
+    a_sigma_s12_gr = feedback_scale_gr * (-3.5e-7 * np.ones(N))
+    a_nu_sigma_f_s = feedback_scale_s * _group_profile([-2.4e-6, -4.3e-6], np.ones(N))
+    a_nu_sigma_f_gr = feedback_scale_gr * _group_profile([-1.7e-6, -2.9e-6], np.ones(N))
+    a_D_s = feedback_scale_s * _group_profile([2.0e-5, 1.2e-5], np.ones(N))
+    a_D_gr = feedback_scale_gr * _group_profile([1.2e-5, 8.0e-6], np.ones(N))
 
     rod_shape = np.vstack([
         np.exp(-((z - 0.55 * L) ** 2) / (2.0 * (0.17 * L) ** 2)),
@@ -161,11 +174,11 @@ def generate_parameters(
 
     A_f = A * np.ones(N)
     sigma_f_total_ref = np.sum(sigma_f_ref * phi_ref, axis=0)
-    raw_power = np.trapz(A_f * sigma_f_total_ref, z)
+    raw_power = np.trapezoid(A_f * sigma_f_total_ref, z)
     power_scale = nominal_total_power / max(raw_power, 1.0e-12)
 
-    reference_production = np.trapz(np.sum(nu_sigma_f_ref * phi_ref, axis=0), z)
-    reference_absorption = np.trapz(np.sum(sigma_a_ref * phi_ref, axis=0), z)
+    reference_production = np.trapezoid(np.sum(nu_sigma_f_ref * phi_ref, axis=0), z)
+    reference_absorption = np.trapezoid(np.sum(sigma_a_ref * phi_ref, axis=0), z)
     reference_multiplication_ratio = reference_production / max(reference_absorption, 1.0e-12)
 
     precursor_loop_state = initialize_precursor_loop_state(
@@ -249,6 +262,7 @@ def generate_parameters(
         "rod_shape": rod_shape,
         "rod_sigma_a_amplitude": rod_sigma_a_amplitude,
         "external_reactivity_to_absorption": external_reactivity_to_absorption,
+        "external_reactivity_mode": external_reactivity_mode,
         "T_s_ref": T_s_ref,
         "T_gr_ref": T_gr_ref,
         "phi_1_0": phi_1_0,
@@ -262,7 +276,13 @@ def generate_parameters(
         "nominal_total_power": nominal_total_power,
         "power_scale": power_scale,
         "reference_multiplication_ratio": reference_multiplication_ratio,
+        "critical_fission_scale": 1.0,
         "precursor_loop_efficiency": precursor_loop_efficiency,
+        "feedback_scale_s": feedback_scale_s,
+        "feedback_scale_gr": feedback_scale_gr,
+        "fuel_feedback_coeff_pcm_per_K": DEFAULT_FUEL_FEEDBACK_COEFF_PCM_PER_K,
+        "graphite_feedback_coeff_pcm_per_K": DEFAULT_GRAPHITE_FEEDBACK_COEFF_PCM_PER_K,
+        "feedback_reactivity_mode": "linear_coefficients",
         "precursor_loop_state": precursor_loop_state,
         "precursor_loop_tau": tau_l,
         "outer_dt": outer_dt,
@@ -296,6 +316,7 @@ def generate_parameters(
         "V_he_s": V_he_s,
         "V_he_ss": V_he_ss,
         "U_hx": U_hx,
+        "UA_hx": U_hx,
         "M_he_s": M_he_s,
         "M_he_ss": M_he_ss,
         "c_p_ss": c_p_ss,
@@ -314,6 +335,7 @@ def generate_parameters(
         "V_he2_s": V_he2_s,
         "V_he2_ss": V_he2_ss,
         "U2_hx": U2_hx,
+        "UA2_hx": U2_hx,
         "M_he2_s": M_he2_s,
         "M_he2_ss": M_he2_ss,
         "c_p_sss": c_p_sss,
@@ -326,6 +348,7 @@ def generate_parameters(
         "brayton_cooler_outlet_temp": brayton_cooler_outlet_temp,
         "brayton_min_heater_approach": brayton_min_heater_approach,
         "brayton_mdot": brayton_mdot,
+        "brayton_available_heat_W": nominal_total_power,
         "u2_L": u2_L,
         "u2_H": u2_H,
         "v2_L": v2_L,
@@ -347,12 +370,34 @@ def generate_parameters(
         "Tsss_in": v2_L,
         "Tsss_out": v2_H,
         "scale": scale,
+        "reactivity_schedule_pcm": [(0.0, 0.0)],
+        "point_kinetics_enabled": True,
+        "point_kinetics_correction_mode": "absolute",
+        "prompt_generation_time_s": 2.0e-4,
         "AT_sparse": AT_sparse,
         "A_HX_sparse": A_HX_sparse,
         "A_HX2_sparse": A_HX2_sparse,
         "min_diffusion": 1.0e-5,
         "min_cross_section": 1.0e-6,
         "last_global_rho": 0.0,
+        "neutronics_ode_horizon": outer_dt,
+        "neutronics_ode_rtol": 1.0e-6,
+        "neutronics_ode_atol": 1.0e-8,
+        "neutronics_ode_h_min": 1.0e-6,
+        "neutronics_ode_h_max": 0.02,
+        "neutronics_ode_initial_h": 1.0e-3,
+        "thermal_ode_horizon": outer_dt,
+        "thermal_ode_rtol": 1.0e-5,
+        "thermal_ode_atol": 1.0e-6,
+        "thermal_ode_h_min": 1.0e-5,
+        "thermal_ode_h_max": 0.05,
+        "thermal_ode_initial_h": 0.01,
+        "hx_ode_horizon": outer_dt,
+        "hx_ode_rtol": 1.0e-5,
+        "hx_ode_atol": 1.0e-6,
+        "hx_ode_h_min": 1.0e-5,
+        "hx_ode_h_max": 0.05,
+        "hx_ode_initial_h": 0.01,
     }
 
     if use_steady_state_initialization:

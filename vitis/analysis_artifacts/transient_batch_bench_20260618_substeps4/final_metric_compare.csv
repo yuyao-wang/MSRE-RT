@@ -1,0 +1,13 @@
+metric,reference,value,abs_error,rel_error
+phi_mid,0.01025013706202073,nan,nan,nan
+rho,0.0025,0.0024999999441206455,5.5879354528970415e-11,2.2351741811588166e-08
+power,1391143.376514732,nan,nan,nan
+fuel_mid,1481.841669827989,nan,nan,nan
+graphite_mid,2474.470665263145,nan,nan,nan
+core_inlet,1047.781010086563,nan,nan,nan
+core_outlet,1679.564728487911,nan,nan,nan
+hx1_hot_outlet,1046.188277340542,nan,nan,nan
+hx1_cold_outlet,1717.03990923234,nan,nan,nan
+hx2_hot_outlet,1354.89551165995,nan,nan,nan
+hx2_cold_outlet,1815.496597627171,nan,nan,nan
+brayton_return,1707.155133557743,648.3450317382812,1058.8101018194618,0.6202190304831183

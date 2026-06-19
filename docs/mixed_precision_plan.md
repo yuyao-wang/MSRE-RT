@@ -8,6 +8,16 @@ The plan assumes a conservative order:
 2. convert storage-heavy thermal and heat-exchanger state to `float`
 3. only then evaluate fixed-point for bounded, well-scaled sub-domains
 
+## Current Experimental Status
+
+The current HLS code now includes an experimental resident-state path in `msr_transient_batch_kernel()`:
+
+- neutronics state stays in `double`
+- thermal state, HX state, and step-to-step boundary storage can stay resident in `float`
+- precursor-loop ring-buffer history and delay-line payload storage can stay resident in `float`
+
+This is intentionally narrower than a full ABI migration. The external host-visible structs are still `double` so the mixed-precision storage change is confined to the on-chip transient path first.
+
 ## Keep In Double First
 
 These values should stay in `double` in the first mixed-precision pass because they either dominate numerical stability or amplify small errors globally.

@@ -1,0 +1,20 @@
+schedule_name,state_order,state_id,st_id,op_count,categories,calls
+thermal_kernel,1,1,1,22,"{""axi_read"": 1, ""other"": 21}",{}
+thermal_kernel,2,2,2,1,"{""other"": 1}",{}
+thermal_kernel,3,3,3,18,"{""axi_read"": 16, ""other"": 1, ""user_call"": 1}","{""thermal_rhs"": 1}"
+thermal_kernel,4,4,4,2,"{""other"": 1, ""user_call"": 1}","{""thermal_rhs"": 1}"
+thermal_kernel,5,5,5,1,"{""user_call"": 1}","{""load_thermal_stage"": 1}"
+thermal_kernel,6,6,6,1,"{""user_call"": 1}","{""load_thermal_stage"": 1}"
+thermal_kernel,7,7,7,2,"{""other"": 1, ""user_call"": 1}","{""thermal_rhs"": 1}"
+thermal_kernel,8,8,8,2,"{""other"": 1, ""user_call"": 1}","{""thermal_rhs"": 1}"
+thermal_kernel,9,9,9,2,"{""other"": 1, ""user_call"": 1}","{""load_thermal_stage"": 1}"
+thermal_kernel,10,10,10,2,"{""other"": 1, ""user_call"": 1}","{""load_thermal_stage"": 1}"
+thermal_kernel,11,11,11,2,"{""other"": 1, ""user_call"": 1}","{""thermal_rhs"": 1}"
+thermal_kernel,12,12,12,2,"{""other"": 1, ""user_call"": 1}","{""thermal_rhs"": 1}"
+thermal_kernel,13,13,13,2,"{""other"": 1, ""user_call"": 1}","{""load_thermal_stage"": 1}"
+thermal_kernel,14,14,14,2,"{""other"": 1, ""user_call"": 1}","{""load_thermal_stage"": 1}"
+thermal_kernel,15,15,15,2,"{""other"": 1, ""user_call"": 1}","{""thermal_rhs"": 1}"
+thermal_kernel,16,16,16,2,"{""other"": 1, ""user_call"": 1}","{""thermal_rhs"": 1}"
+thermal_kernel,17,17,17,2,"{""other"": 1, ""user_call"": 1}","{""thermal_kernel_Pipeline_VITIS_LOOP_877_2"": 1}"
+thermal_kernel,18,18,18,1,"{""user_call"": 1}","{""thermal_kernel_Pipeline_VITIS_LOOP_877_2"": 1}"
+thermal_kernel,19,19,19,3,"{""other"": 3}",{}

@@ -15,6 +15,18 @@ from HX2 import HX2
 from transport_delay import transport_delay
 from power_plant import power_plant_temp
 
+
+def external_reactivity_from_schedule(params, time_s):
+    schedule = params.get('reactivity_schedule_pcm', [(0.0, 0.0)])
+    current_pcm = float(schedule[0][1])
+    for event_time, value_pcm in schedule:
+        if float(time_s) >= float(event_time):
+            current_pcm = float(value_pcm)
+        else:
+            break
+    return current_pcm * 1.0e-5
+
+
 def save_ci_groups_csv(selected_step, ci_groups_at_step, params, index):
     os.makedirs('simulation_results', exist_ok=True)
 
@@ -38,8 +50,8 @@ def save_ci_groups_csv(selected_step, ci_groups_at_step, params, index):
     print(f"Saved Ci groups at step {selected_step} to {csv_path}")
     
 def run_simulation(params, index):
-    time_span = 600
-    selected_step = 599
+    time_span = int(params.get('time_span', 600))
+    selected_step = min(int(params.get('selected_step', time_span - 1)), time_span - 1)
     N = params['N']
     Nx = params['Nx']
     mid_idx = N // 2
@@ -52,24 +64,39 @@ def run_simulation(params, index):
     # Extract parameters
     rho = np.zeros(N)
     rod_position = 0.0
-    y_n = np.zeros((params['neutronics_state_size'], 1))
+    y_n_seed = np.asarray(params.get('y_n_init', []), dtype=float)
+    if y_n_seed.size == params['neutronics_state_size']:
+        y_n = y_n_seed.reshape(-1, 1)
+    else:
+        y_n = np.zeros((params['neutronics_state_size'], 1))
     q_prime = np.zeros(N)
+    y_th_seed = np.asarray(params.get('y_th_init', []), dtype=float)
+    y_hx1_seed = np.asarray(params.get('y_hx1_init', []), dtype=float)
+    y_hx2_seed = np.asarray(params.get('y_hx2_init', []), dtype=float)
     y_th = np.zeros((2 * N, 1))
     y_hx1 = np.zeros((2 * Nx, 1))
     y_hx2 = np.zeros((2 * Nx, 1))
-    y_hx1[:, 0] = np.concatenate([params['u_init'], params['v_init']])
-    y_hx2[:, 0] = np.concatenate([params['u2_init'], params['v2_init']])
+    if y_th_seed.size == 2 * N:
+        y_th[:, 0] = y_th_seed.reshape(-1)
+    if y_hx1_seed.size == 2 * Nx:
+        y_hx1[:, 0] = y_hx1_seed.reshape(-1)
+    else:
+        y_hx1[:, 0] = np.concatenate([params['u_init'], params['v_init']])
+    if y_hx2_seed.size == 2 * Nx:
+        y_hx2[:, 0] = y_hx2_seed.reshape(-1)
+    else:
+        y_hx2[:, 0] = np.concatenate([params['u2_init'], params['v2_init']])
     
     Tss_HX2_0 = params['Tss_in']
     Ts_HX1_0 = params['Ts_in']
     Tss_HX1_0 = params['Tss_in']
     Tsss_pp_0 = params['Tsss_in']
-    buffer_hx_c = deque()
-    buffer_c_hx = deque()
-    buffer_r_hx = deque()
-    buffer_hx_r = deque()
-    buffer_r_pp = deque()
-    buffer_pp_r = deque()
+    buffer_hx_c = deque(params.get('buffer_hx_c_init', []))
+    buffer_c_hx = deque(params.get('buffer_c_hx_init', []))
+    buffer_r_hx = deque(params.get('buffer_r_hx_init', []))
+    buffer_hx_r = deque(params.get('buffer_hx_r_init', []))
+    buffer_r_pp = deque(params.get('buffer_r_pp_init', []))
+    buffer_pp_r = deque(params.get('buffer_pp_r_init', []))
     Ts_in = params['Ts_in']
     Ts_out = params['Ts_out']
     Tss_in = params['Tss_in']
@@ -114,6 +141,19 @@ def run_simulation(params, index):
         'brayton_Q_in': np.zeros(time_span),
         'brayton_Q_out': np.zeros(time_span),
         'brayton_eta': np.zeros(time_span),
+        'brayton_available_heat': np.zeros(time_span),
+        'effective_beta': np.zeros(time_span),
+        'effective_beta_group_1': np.zeros(time_span),
+        'effective_beta_group_2': np.zeros(time_span),
+        'effective_beta_group_3': np.zeros(time_span),
+        'effective_beta_group_4': np.zeros(time_span),
+        'effective_beta_group_5': np.zeros(time_span),
+        'effective_beta_group_6': np.zeros(time_span),
+        'reactivity_inserted_pcm': np.zeros(time_span),
+        'feedback_reactivity_pcm': np.zeros(time_span),
+        'feedback_fuel_delta_K': np.zeros(time_span),
+        'feedback_graphite_delta_K': np.zeros(time_span),
+        'first_law_residual': np.zeros(time_span),
         'core_power': np.zeros(time_span),
     }
 
@@ -123,13 +163,16 @@ def run_simulation(params, index):
     ci_groups_selected_step = None
 
     for step in range(time_span):
-        print(f'Step {step}/{time_span}')
+        if verbose and (step % max(int(log_every), 1) == 0 or step == time_span - 1):
+            print(f'Step {step}/{time_span}')
+        current_time = params['outer_dt'] * step
+        external_reactivity = external_reactivity_from_schedule(params, current_time)
 
         state = {
             'temperature_fuel': temperature_fuel,
             'temperature_graphite': temperature_graphite,
             'rod_position': rod_position,
-            'external_reactivity': 0.0,
+            'external_reactivity': external_reactivity,
         }
         y_n, q_prime = neutronics(y_n[:, -1], state, step, params)
         phi_fast = y_n[:N, -1].T
@@ -139,7 +182,7 @@ def run_simulation(params, index):
         phi_middle_matrix[step] = phi[mid_idx]
         if step > 0:
             neutron_dt_matrix[step] = (phi[mid_idx] - phi_middle_matrix[step - 1]) * 100
-        total_power_matrix[step] = np.trapz(q_prime, params['z'])
+        total_power_matrix[step] = np.trapezoid(q_prime, params['z'])
 
         if step in save_steps:
             saved_data.append({
@@ -227,6 +270,7 @@ def run_simulation(params, index):
             step,
             dt=params.get('outer_dt', 1.0),
         )
+        params['brayton_available_heat_W'] = float(total_power_matrix[step, 0])
         y_pp = power_plant_temp(Tsss_pp_L, params, step)
         Tsss_pp_0 = y_pp
         pp_state = params.get('last_power_plant', {})
@@ -242,12 +286,25 @@ def run_simulation(params, index):
         system_diagnostics['hx2_cold_in'][step] = Tsss_HX2_0
         system_diagnostics['hx2_cold_out'][step] = Tsss_HX2_L
         system_diagnostics['core_power'][step] = total_power_matrix[step, 0]
+        system_diagnostics['effective_beta'][step] = params.get('last_effective_beta', 0.0)
+        beta_groups = np.asarray(params.get('last_effective_beta_groups', np.zeros(6)), dtype=float)
+        for group_idx in range(min(6, beta_groups.size)):
+            system_diagnostics[f'effective_beta_group_{group_idx + 1}'][step] = beta_groups[group_idx]
+        system_diagnostics['reactivity_inserted_pcm'][step] = external_reactivity * 1.0e5
+        system_diagnostics['feedback_reactivity_pcm'][step] = params.get('last_feedback_rho_pcm', 0.0)
+        system_diagnostics['feedback_fuel_delta_K'][step] = params.get('last_feedback_fuel_delta_K', 0.0)
+        system_diagnostics['feedback_graphite_delta_K'][step] = params.get('last_feedback_graphite_delta_K', 0.0)
         for key in ('T1', 'T2', 'T2r', 'T3', 'T4', 'T4r', 'W_c', 'W_t', 'W_net', 'Q_in', 'Q_out', 'eta_b'):
             if key in pp_state:
                 target = 'brayton_eta' if key == 'eta_b' else f'brayton_{key}'
                 system_diagnostics[target][step] = pp_state[key]
+        if 'available_heat' in pp_state:
+            system_diagnostics['brayton_available_heat'][step] = pp_state['available_heat']
+            system_diagnostics['first_law_residual'][step] = (
+                total_power_matrix[step, 0] - pp_state['Q_in']
+            )
 
-        rho = np.full(N, params.get('last_global_rho', 0.0))
+        rho = np.full(N, external_reactivity)
         rho_matrix[step] = rho.mean()
         if step > 0:
             rho_dt_matrix[step] = rho.mean() - rho_matrix[step - 1]
@@ -287,6 +344,15 @@ def run_simulation(params, index):
     save_specific_data(saved_data, index)
     save_ci_groups_csv(selected_step, ci_groups_selected_step, params, index)
     save_system_diagnostics(system_diagnostics, index)
+    return {
+        'time': time_axis.copy(),
+        'phi_middle': phi_middle_matrix.copy(),
+        'ci_middle': ci_middle_matrix.copy(),
+        'temperature_fuel_middle': temperature_fuel_middle_matrix.copy(),
+        'temperature_graphite_middle': temperature_graphite_middle_matrix.copy(),
+        'total_power': total_power_matrix.copy(),
+        'system_diagnostics': {key: np.asarray(value).copy() for key, value in system_diagnostics.items()},
+    }
 
 def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_graphite,
                  Ts_HX1_matrix, Tss_HX1, Tss_HX2, Tsss_HX2, phi_middle_matrix,

@@ -1,6 +1,7 @@
 \documentclass[a4paper,12pt]{article}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage[ruled,vlined]{algorithm2e}
 \usepackage{geometry}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -718,7 +719,9 @@ C_{i,0}(H)
 
 For heat exchanger $j$, the hot-side and cold-side bulk temperatures are
 denoted by $T_{h,j}(x,t)$ and $T_{c,j}(x,t)$, respectively, with
-$x\in[0,L_j]$. The one-dimensional advection--heat-transfer equations are
+$x\in[0,L_j]$. The reduced model uses an effective overall conductance
+$(\mathrm{UA})_j$ for each exchanger rather than a local $U_jP_j$ product.
+The one-dimensional advection--heat-transfer equations are
 \begin{equation}
 \frac{\partial T_{h,j}}{\partial t}
 +
@@ -727,9 +730,9 @@ u_{h,j}
 =
 -
 \frac{
-U_jP_j
+(\mathrm{UA})_j
 }{
-\rho_{h,j}c_{p,h,j}A_{h,j}
+L_j\rho_{h,j}c_{p,h,j}A_{h,j}
 }
 \left[
 T_{h,j}(x,t)-T_{c,j}(x,t)
@@ -745,9 +748,9 @@ T_{h,j}(x,t)-T_{c,j}(x,t)
 =
 +
 \frac{
-U_jP_j
+(\mathrm{UA})_j
 }{
-\rho_{c,j}c_{p,c,j}A_{c,j}
+L_j\rho_{c,j}c_{p,c,j}A_{c,j}
 }
 \left[
 T_{h,j}(x,t)-T_{c,j}(x,t)
@@ -757,6 +760,10 @@ T_{h,j}(x,t)-T_{c,j}(x,t)
 
 The sign parameter $\epsilon_j$ distinguishes co-current flow
 ($\epsilon_j=+1$) from counter-current flow ($\epsilon_j=-1$).
+Because $M_{h,j}=\rho_{h,j}A_{h,j}L_j$ and $M_{c,j}=\rho_{c,j}A_{c,j}L_j$,
+the implementation-equivalent exchange coefficients are
+$(\mathrm{UA})_j/(M_{h,j}c_{p,h,j})$ and
+$(\mathrm{UA})_j/(M_{c,j}c_{p,c,j})$.
 
 For a co-current heat exchanger,
 \begin{equation}
@@ -1011,6 +1018,122 @@ T_{c,j}(L_j,t)=T_{c,j}^{\mathrm{in}}(t).
 \]
 All outlet temperatures are evaluated from the solution rather than
 prescribed.
+
+\subsection{Finite-Difference Time Marching}
+
+The implementation advances the coupled system on a uniform axial mesh
+\(z_j=j\Delta z\) by finite differences in space and by the adaptive RK4
+substepper used in the code over each outer interval
+\([t^n,t^{n+1}]\). Diffusion terms are discretized with face-averaged
+coefficients and extrapolated-vacuum ghost cells, while precursor,
+fuel-salt, and heat-exchanger advection terms are discretized by
+first-order upwinding at the physical inflow boundary.
+
+\begin{algorithm}[t]
+\DontPrintSemicolon
+\SetAlgoLined
+\small
+\caption{Core finite-difference update over one outer step}
+\label{alg:fdtd_core_msre_bc}
+\KwIn{\(\phi_{g,j}^n\), \(C_{i,j}^n\), \(T_{s,j}^n\), \(T_{\mathrm{gr},j}^n\), precursor-loop history, \(\Delta t\)}
+\KwOut{\(\phi_{g,j}^{n+1}\), \(C_{i,j}^{n+1}\), \(T_{s,j}^{n+1}\), \(T_{\mathrm{gr},j}^{n+1}\), \(q_j^{\prime\,n+1}\)}
+Construct \(D_{g,j}^n\), \(\Sigma_{a,g,j}^n\), \(\Sigma_{s,12,j}^n\), and
+\(\nu\Sigma_{f,g,j}^n\) from
+Eqs.~\eqref{eq:generic_xs_feedback}--\eqref{eq:diffusion_feedback} and
+Eq.~\eqref{eq:rho_to_absorption}\;
+Recover the precursor inlet vector \(C_{i,\mathrm{in}}^n\) from the
+external-loop history using Eq.~\eqref{eq:precursor_delay_bc_eta}\;
+Set \(\phi_{g,-1}^n=\phi_{g,1}^n-\frac{2\Delta z}{d_{e,g}}\phi_{g,0}^n\),
+\(\phi_{g,N}^n=\phi_{g,N-2}^n-\frac{2\Delta z}{d_{e,g}}\phi_{g,N-1}^n\),
+and \(D_{g,j+\frac12}^n=\frac12\left(D_{g,j}^n+D_{g,j+1}^n\right)\)\;
+\ForEach{axial node \(j=0,\ldots,N-1\)}{
+Assemble
+\[
+\mathcal{D}_{g,j}^n=
+\frac{
+D_{g,j+\frac12}^n\left(\phi_{g,j+1}^n-\phi_{g,j}^n\right)
+-
+D_{g,j-\frac12}^n\left(\phi_{g,j}^n-\phi_{g,j-1}^n\right)
+}{\Delta z^2},
+\]
+\[
+F_j^n=\sum_{g=1}^{2}\nu\Sigma_{f,g,j}^n\phi_{g,j}^n,\qquad
+S_{d,j}^n=\sum_{i=1}^{6}\lambda_i C_{i,j}^n,
+\]
+and \(\mathcal{A}_{i,j}^n=u_c\left(C_{i,j}^n-C_{i,j-1}^n\right)/\Delta z\)
+with \(C_{i,-1}^n\equiv C_{i,\mathrm{in}}^n\)\;
+}
+Advance the semi-discrete neutronics system over \([t^n,t^{n+1}]\) with
+adaptive RK4:
+\[
+\dot{\phi}_{1,j}=v_1\left[\mathcal{D}_{1,j}-\Sigma_{r,1,j}\phi_{1,j}+(1-\beta)F_j+S_{d,j}\right],
+\]
+\[
+\dot{\phi}_{2,j}=v_2\left[\mathcal{D}_{2,j}-\Sigma_{r,2,j}\phi_{2,j}+\Sigma_{s,12,j}\phi_{1,j}\right],
+\qquad
+\dot{C}_{i,j}=\beta_i F_j-\lambda_i C_{i,j}-\mathcal{A}_{i,j};
+\]
+store \(C_{i,N-1}^{n+1}\) in the precursor-loop outlet history and
+evaluate \(q_j^{\prime\,n+1}\) from
+Eqs.~\eqref{eq:volumetric_power}--\eqref{eq:linear_power}\;
+Recover the delayed core inlet temperature \(T_{s,\mathrm{in}}^n\) and
+set \(T_{s,-1}^n\equiv T_{s,\mathrm{in}}^n\)\;
+\ForEach{axial node \(j=0,\ldots,N-1\)}{
+Assemble \(\mathcal{A}_{s,j}^n=u_c\left(T_{s,j}^n-T_{s,j-1}^n\right)/\Delta z\)
+and the second-order Neumann graphite stencil
+\[
+\mathcal{G}_j^n=
+\begin{cases}
+\dfrac{2\left(T_{\mathrm{gr},1}^n-T_{\mathrm{gr},0}^n\right)}{\Delta z^2}, & j=0,\\[0.6em]
+\dfrac{T_{\mathrm{gr},j+1}^n-2T_{\mathrm{gr},j}^n+T_{\mathrm{gr},j-1}^n}{\Delta z^2}, & 1\leq j\leq N-2,\\[0.6em]
+\dfrac{2\left(T_{\mathrm{gr},N-2}^n-T_{\mathrm{gr},N-1}^n\right)}{\Delta z^2}, & j=N-1;
+\end{cases}
+\]
+}
+Advance the semi-discrete thermal system over \([t^n,t^{n+1}]\) with
+adaptive RK4:
+\[
+\dot{T}_{s,j}=
+-\mathcal{A}_{s,j}
++
+\frac{\eta_s q_j'+h_{s\mathrm{gr}}P_{s\mathrm{gr}}\left(T_{\mathrm{gr},j}-T_{s,j}\right)}{\rho_s c_{p,s}A_s},
+\]
+\[
+\dot{T}_{\mathrm{gr},j}=
+\frac{\eta_{\mathrm{gr}} q_j'-h_{s\mathrm{gr}}P_{s\mathrm{gr}}\left(T_{\mathrm{gr},j}-T_{s,j}\right)}{\rho_{\mathrm{gr}} c_{p,\mathrm{gr}}A_{\mathrm{gr}}}
++
+\frac{k_{\mathrm{gr}}}{\rho_{\mathrm{gr}} c_{p,\mathrm{gr}}}\mathcal{G}_j,
+\]
+with direct enforcement of the salt inlet value at \(j=0\)\;
+\end{algorithm}
+
+\begin{algorithm}[t]
+\DontPrintSemicolon
+\SetAlgoLined
+\small
+\caption{Loop, heat-exchanger, and Brayton-cycle coupling update}
+\label{alg:fdtd_loop_msre_bc}
+\KwIn{Updated core outlet temperatures and powers at \(t^{n+1}\), HX states at \(t^n\), delay buffers, \(\Delta t\)}
+\KwOut{Updated HX states, Brayton state, refreshed delay buffers, \(P^{n+1}\), and \(\rho^{n+1}\)}
+Apply the discrete transport-delay buffers to obtain the inflow
+temperatures for HX1, HX2, the reactor return line, and the Brayton-side
+heater inlet\;
+For each heat exchanger branch, assemble the signed upwind gradient at
+the physical inflow boundary and advance the semi-discrete forms of
+Eqs.~\eqref{eq:hx_hot}--\eqref{eq:hx_cold} over \([t^n,t^{n+1}]\) with
+the same adaptive RK4 solver\;
+Use the updated HX2 outlet temperature as the Brayton-cycle heater
+temperature and evaluate
+\((T_2,T_{2r},T_4,T_{4r},W_c,W_t,W_{\mathrm{net}},Q_{\mathrm{in}},\eta_b)\)
+from Eqs.~\eqref{eq:compressor_actual}--\eqref{eq:brayton_efficiency}
+and Eqs.~\eqref{eq:recuperator_cold_out}--\eqref{eq:brayton_heat_input_recuperated}\;
+Refresh the thermal-loop delay buffers with the newly computed outlet
+temperatures\;
+Compute \(P^{n+1}\) from Eq.~\eqref{eq:total_power}, estimate
+\(k^{n+1}\) and \(\rho^{n+1}\) from
+Eqs.~\eqref{eq:global_eigenvalue}--\eqref{eq:global_reactivity}, and
+write scheduled diagnostics and output files\;
+\end{algorithm}
 
 \subsection{Verification Quantities for the Revised Model}
 

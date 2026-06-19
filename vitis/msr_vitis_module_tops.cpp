@@ -4,6 +4,9 @@ struct CoreStepState {
     double phi1[msr_vitis::kMaxN];
     double phi2[msr_vitis::kMaxN];
     double C[msr_vitis::kPrecursorGroups][msr_vitis::kMaxN];
+    double kinetics_amplitude;
+    double kinetics_precursors[msr_vitis::kPrecursorGroups];
+    double kinetics_beta_effective[msr_vitis::kPrecursorGroups];
     double fuel[msr_vitis::kMaxN];
     double graphite[msr_vitis::kMaxN];
     msr_vitis::PrecursorHistory precursor_history;
@@ -184,6 +187,9 @@ void load_neutronics_module_state(int n, const StepState* src, StepState& dst) {
     copy_vector_in(n, src->phi1, dst.phi1);
     copy_vector_in(n, src->phi2, dst.phi2);
     copy_precursor_vector_in(n, src->C, dst.C);
+    dst.kinetics_amplitude = src->kinetics_amplitude;
+    copy_precursor_scalars(src->kinetics_precursors, dst.kinetics_precursors);
+    copy_precursor_scalars(src->kinetics_beta_effective, dst.kinetics_beta_effective);
     copy_precursor_history(src->precursor_history, dst.precursor_history);
 }
 
@@ -192,6 +198,9 @@ void store_neutronics_module_state(int n, const StepState& src, StepState* dst) 
     copy_vector_out(n, src.phi1, dst->phi1);
     copy_vector_out(n, src.phi2, dst->phi2);
     copy_precursor_vector_in(n, src.C, dst->C);
+    dst->kinetics_amplitude = src.kinetics_amplitude;
+    copy_precursor_scalars(src.kinetics_precursors, dst->kinetics_precursors);
+    copy_precursor_scalars(src.kinetics_beta_effective, dst->kinetics_beta_effective);
     copy_precursor_history(src.precursor_history, dst->precursor_history);
 }
 
@@ -200,6 +209,8 @@ void load_neutronics_module_params(const KernelParams* src, KernelParams& dst) {
     dst.N = src->N;
     dst.hardware_substeps = src->hardware_substeps;
     dst.inlet_mode = src->inlet_mode;
+    dst.point_kinetics_enabled = src->point_kinetics_enabled;
+    dst.external_reactivity_mode = src->external_reactivity_mode;
     dst.precursor_delay_older = src->precursor_delay_older;
     dst.precursor_delay_newer = src->precursor_delay_newer;
     dst.precursor_interp_newer = src->precursor_interp_newer;
@@ -208,10 +219,15 @@ void load_neutronics_module_params(const KernelParams* src, KernelParams& dst) {
     dst.u_precursor = src->u_precursor;
     dst.power_scale = src->power_scale;
     dst.Beta = src->Beta;
+    dst.critical_fission_scale = src->critical_fission_scale;
+    dst.prompt_generation_time_s = src->prompt_generation_time_s;
+    dst.external_reactivity = src->external_reactivity;
+    dst.brayton_available_heat_W = src->brayton_available_heat_W;
     dst.precursor_loop_efficiency = src->precursor_loop_efficiency;
     dst.precursor_loop_tau = src->precursor_loop_tau;
     copy_precursor_scalars(src->beta, dst.beta);
     copy_precursor_scalars(src->lambda_i, dst.lambda_i);
+    copy_precursor_scalars(src->kinetics_beta_effective, dst.kinetics_beta_effective);
     copy_energy_scalars(src->neutron_velocity, dst.neutron_velocity);
     copy_energy_scalars(src->chi_p, dst.chi_p);
     copy_energy_scalars(src->chi_d, dst.chi_d);
@@ -321,6 +337,9 @@ void load_core_step_state(int n, const CoreStepState* src, StepState& dst) {
     copy_vector_in(n, src->phi1, dst.phi1);
     copy_vector_in(n, src->phi2, dst.phi2);
     copy_precursor_vector_in(n, src->C, dst.C);
+    dst.kinetics_amplitude = src->kinetics_amplitude;
+    copy_precursor_scalars(src->kinetics_precursors, dst.kinetics_precursors);
+    copy_precursor_scalars(src->kinetics_beta_effective, dst.kinetics_beta_effective);
     copy_vector_in(n, src->fuel, dst.fuel);
     copy_vector_in(n, src->graphite, dst.graphite);
     copy_precursor_history(src->precursor_history, dst.precursor_history);
@@ -331,6 +350,9 @@ void store_core_step_state(int n, const StepState& src, CoreStepState* dst) {
     copy_vector_out(n, src.phi1, dst->phi1);
     copy_vector_out(n, src.phi2, dst->phi2);
     copy_precursor_vector_in(n, src.C, dst->C);
+    dst->kinetics_amplitude = src.kinetics_amplitude;
+    copy_precursor_scalars(src.kinetics_precursors, dst->kinetics_precursors);
+    copy_precursor_scalars(src.kinetics_beta_effective, dst->kinetics_beta_effective);
     copy_vector_out(n, src.fuel, dst->fuel);
     copy_vector_out(n, src.graphite, dst->graphite);
     copy_precursor_history(src.precursor_history, dst->precursor_history);
@@ -347,6 +369,8 @@ void load_core_step_params(
     dst.hardware_substeps = hardware_substeps;
     dst.inlet_mode = src->inlet_mode;
     dst.use_graphite_axial_conduction = src->use_graphite_axial_conduction;
+    dst.point_kinetics_enabled = src->point_kinetics_enabled;
+    dst.external_reactivity_mode = src->external_reactivity_mode;
     dst.precursor_delay_older = src->precursor_delay_older;
     dst.precursor_delay_newer = src->precursor_delay_newer;
     dst.precursor_interp_newer = src->precursor_interp_newer;
@@ -356,6 +380,9 @@ void load_core_step_params(
     dst.u_precursor = src->u_precursor;
     dst.power_scale = src->power_scale;
     dst.Beta = src->Beta;
+    dst.critical_fission_scale = src->critical_fission_scale;
+    dst.prompt_generation_time_s = src->prompt_generation_time_s;
+    dst.external_reactivity = src->external_reactivity;
     dst.min_diffusion = src->min_diffusion;
     dst.min_cross_section = src->min_cross_section;
     dst.reference_multiplication_ratio = src->reference_multiplication_ratio;
@@ -376,6 +403,7 @@ void load_core_step_params(
 
     copy_precursor_scalars(src->beta, dst.beta);
     copy_precursor_scalars(src->lambda_i, dst.lambda_i);
+    copy_precursor_scalars(src->kinetics_beta_effective, dst.kinetics_beta_effective);
     copy_energy_scalars(src->neutron_velocity, dst.neutron_velocity);
     copy_energy_scalars(src->nu, dst.nu);
     copy_energy_scalars(src->chi_p, dst.chi_p);
@@ -460,7 +488,112 @@ void load_bop_step_params(
     dst.brayton_cooler_outlet_temp = src->brayton_cooler_outlet_temp;
     dst.brayton_min_heater_approach = src->brayton_min_heater_approach;
     dst.brayton_mdot = src->brayton_mdot;
+    dst.brayton_available_heat_W = src->brayton_available_heat_W;
     dst.c_p_sss = src->c_p_sss;
+}
+
+template <int InstanceId>
+void run_bop_hx_kernel(
+    int n,
+    int hardware_substeps,
+    double outer_dt,
+    double dx,
+    double hot_velocity,
+    double cold_velocity,
+    double hot_exchange_coeff,
+    double cold_exchange_coeff,
+    double err,
+    double hot_inlet,
+    double cold_inlet,
+    double hot[kMaxN],
+    double cold[kMaxN],
+    double& hot_outlet,
+    double& cold_outlet
+) {
+#pragma HLS INLINE off
+    msr_vitis::hx_kernel(
+        n,
+        hardware_substeps,
+        outer_dt,
+        dx,
+        hot_velocity,
+        cold_velocity,
+        hot_exchange_coeff,
+        cold_exchange_coeff,
+        err,
+        hot_inlet,
+        cold_inlet,
+        hot,
+        cold
+    );
+    hot_outlet = hot[0];
+    cold_outlet = cold[n - 1];
+}
+
+void run_parallel_bop_hx_pair(
+    int n,
+    int hardware_substeps,
+    double outer_dt,
+    double hx1_dx,
+    double hx1_hot_velocity,
+    double hx1_cold_velocity,
+    double hx1_hot_exchange_coeff,
+    double hx1_cold_exchange_coeff,
+    double hx2_dx,
+    double hx2_hot_velocity,
+    double hx2_cold_velocity,
+    double hx2_hot_exchange_coeff,
+    double hx2_cold_exchange_coeff,
+    double err,
+    double Ts_HX1_L,
+    double Tss_HX1_0,
+    double Tss_HX2_L,
+    double Tsss_HX2_0,
+    double hx1_hot[kMaxN],
+    double hx1_cold[kMaxN],
+    double hx2_hot[kMaxN],
+    double hx2_cold[kMaxN],
+    double& Ts_HX1_0_out,
+    double& Tss_HX1_L_out,
+    double& Tss_HX2_0_out,
+    double& Tsss_HX2_L_out
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+    run_bop_hx_kernel<0>(
+        n,
+        hardware_substeps,
+        outer_dt,
+        hx1_dx,
+        hx1_hot_velocity,
+        hx1_cold_velocity,
+        hx1_hot_exchange_coeff,
+        hx1_cold_exchange_coeff,
+        err,
+        Ts_HX1_L,
+        Tss_HX1_0,
+        hx1_hot,
+        hx1_cold,
+        Ts_HX1_0_out,
+        Tss_HX1_L_out
+    );
+    run_bop_hx_kernel<1>(
+        n,
+        hardware_substeps,
+        outer_dt,
+        hx2_dx,
+        hx2_hot_velocity,
+        hx2_cold_velocity,
+        hx2_hot_exchange_coeff,
+        hx2_cold_exchange_coeff,
+        err,
+        Tss_HX2_L,
+        Tsss_HX2_0,
+        hx2_hot,
+        hx2_cold,
+        Tss_HX2_0_out,
+        Tsss_HX2_L_out
+    );
 }
 
 void load_bop_step_params(const KernelParams* src, KernelParams& dst) {
@@ -910,8 +1043,10 @@ void core_step_kernel_impl(
 #pragma HLS ARRAY_PARTITION variable=local_xs.sigma_s12 cyclic factor=kNeutronicsLaneFactor dim=1
 #pragma HLS ARRAY_PARTITION variable=local_q_prime cyclic factor=kThermalLaneFactor dim=1
 
-    msr_vitis::cross_sections_kernel(local_params, local_state, rod_position, external_reactivity, local_xs);
-    const double rho = msr_vitis::estimate_global_rho(local_params, local_xs);
+    local_params.external_reactivity = external_reactivity;
+    const double xs_external_rho =
+        (local_params.point_kinetics_enabled != 0) ? 0.0 : external_reactivity;
+    msr_vitis::cross_sections_kernel(local_params, local_state, rod_position, xs_external_rho, local_xs);
     msr_vitis::neutronics_kernel(local_params, local_xs, local_state, local_q_prime);
     msr_vitis::thermal_kernel(local_params, local_q_prime, Ts_core_inlet, local_state);
 
@@ -921,7 +1056,7 @@ void core_step_kernel_impl(
 
     store_core_step_state(core_n, local_state, state);
 
-    boundary_out->rho = rho;
+    boundary_out->rho = external_reactivity;
     boundary_out->power = power;
     boundary_out->phi_mid = phi_mid;
     boundary_out->fuel_mid = local_state.fuel[core_mid];
@@ -1010,7 +1145,6 @@ void bop_step_kernel_impl(
     KernelParams local_params;
     const int bop_n = resolve_fixed_value<FixedNx>(params->Nx);
     const int hardware_substeps = resolve_fixed_value<FixedSubsteps>(params->hardware_substeps);
-    const int bop_last = bop_n - 1;
 
     load_bop_step_params(bop_n, hardware_substeps, params, local_params);
     load_bop_step_state(bop_n, state, local_state);
@@ -1020,7 +1154,11 @@ void bop_step_kernel_impl(
 #pragma HLS ARRAY_PARTITION variable=local_state.hx2_hot cyclic factor=kHeatExchangerLaneFactor dim=1
 #pragma HLS ARRAY_PARTITION variable=local_state.hx2_cold cyclic factor=kHeatExchangerLaneFactor dim=1
 
-    msr_vitis::hx_kernel(
+    double Ts_HX1_0 = 0.0;
+    double Tss_HX1_L = 0.0;
+    double Tss_HX2_0 = 0.0;
+    double Tsss_HX2_L = 0.0;
+    run_parallel_bop_hx_pair(
         bop_n,
         local_params.hardware_substeps,
         local_params.outer_dt,
@@ -1029,32 +1167,25 @@ void bop_step_kernel_impl(
         local_params.hx1_cold_velocity,
         local_params.hx1_hot_exchange_coeff,
         local_params.hx1_cold_exchange_coeff,
-        local_params.err,
-        Ts_HX1_L,
-        Tss_HX1_0,
-        local_state.hx1_hot,
-        local_state.hx1_cold
-    );
-    const double Ts_HX1_0 = local_state.hx1_hot[0];
-    const double Tss_HX1_L = local_state.hx1_cold[bop_last];
-
-    msr_vitis::hx_kernel(
-        bop_n,
-        local_params.hardware_substeps,
-        local_params.outer_dt,
         local_params.hx2_dx,
         local_params.hx2_hot_velocity,
         local_params.hx2_cold_velocity,
         local_params.hx2_hot_exchange_coeff,
         local_params.hx2_cold_exchange_coeff,
         local_params.err,
+        Ts_HX1_L,
+        Tss_HX1_0,
         Tss_HX2_L,
         Tsss_HX2_0,
+        local_state.hx1_hot,
+        local_state.hx1_cold,
         local_state.hx2_hot,
-        local_state.hx2_cold
+        local_state.hx2_cold,
+        Ts_HX1_0,
+        Tss_HX1_L,
+        Tss_HX2_0,
+        Tsss_HX2_L
     );
-    const double Tss_HX2_0 = local_state.hx2_hot[0];
-    const double Tsss_HX2_L = local_state.hx2_cold[bop_last];
     const double Tsss_pp_0 = msr_vitis::brayton_kernel(local_params, Tsss_HX2_L);
 
     store_bop_step_state(bop_n, local_state, state);

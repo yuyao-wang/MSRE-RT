@@ -1,8 +1,15 @@
 import numpy as np
 
 
-def ode_solver(ic, bc, vector_to_be_solved, params):
+def ode_solver(ic, bc, vector_to_be_solved, params, prefix=None):
     del bc  # Boundary conditions are handled inside each RHS function.
+
+    def _get(name, default):
+        if prefix is not None:
+            keyed = f"{prefix}_{name}"
+            if keyed in params:
+                return params[keyed]
+        return params.get(name, default)
 
     def rk4_step(fun, t, y, h):
         k1 = fun(t, y)
@@ -15,19 +22,19 @@ def ode_solver(ic, bc, vector_to_be_solved, params):
     n = y.size
 
     t0 = 0.0
-    tf = float(params.get('ode_horizon', 1.0))
+    tf = float(_get('ode_horizon', 1.0))
     if tf <= t0:
         return y[:, None]
 
     # Adaptive controls with conservative defaults for stability.
-    rtol = float(params.get('ode_rtol', 1e-4))
-    atol = float(params.get('ode_atol', 1e-6))
-    h_min = float(params.get('ode_h_min', 1e-5))
-    h_max = float(params.get('ode_h_max', 0.25))
-    h = float(params.get('ode_initial_h', min(0.05, tf)))
+    rtol = float(_get('ode_rtol', 1e-4))
+    atol = float(_get('ode_atol', 1e-6))
+    h_min = float(_get('ode_h_min', 1e-5))
+    h_max = float(_get('ode_h_max', 0.25))
+    h = float(_get('ode_initial_h', min(0.05, tf)))
     h = min(max(h, h_min), h_max, tf)
 
-    max_steps = int(params.get('ode_max_steps', 100000))
+    max_steps = int(_get('ode_max_steps', 100000))
     safety = 0.9
 
     t = t0

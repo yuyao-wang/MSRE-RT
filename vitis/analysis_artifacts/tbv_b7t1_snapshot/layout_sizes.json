@@ -1,0 +1,11 @@
+{
+  "step_count": 600,
+  "scenario_count": 1,
+  "hardware_substeps": 32,
+  "insertion_pcm": 0.0,
+  "insertion_time_s": 300.0,
+  "state_size": 25656,
+  "delay_size": 1632,
+  "params_size": 50352,
+  "final_diagnostics_size": 96
+}

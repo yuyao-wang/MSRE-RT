@@ -1,0 +1,231 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ecf8d9"/>
+      <stop offset="100%" stop-color="#d6efcf"/>
+    </linearGradient>
+    <linearGradient id="clockbar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffd778"/>
+      <stop offset="100%" stop-color="#f6c25c"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f9fff4"/>
+      <stop offset="100%" stop-color="#eef9e7"/>
+    </linearGradient>
+    <linearGradient id="boxgray" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f5f5f5"/>
+      <stop offset="100%" stop-color="#dddddd"/>
+    </linearGradient>
+    <linearGradient id="boxblue" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#eef4ff"/>
+      <stop offset="100%" stop-color="#cfdef8"/>
+    </linearGradient>
+    <linearGradient id="boxgreen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ecf9ea"/>
+      <stop offset="100%" stop-color="#cfe9cc"/>
+    </linearGradient>
+    <linearGradient id="boxgold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff2cf"/>
+      <stop offset="100%" stop-color="#f6ddb1"/>
+    </linearGradient>
+    <linearGradient id="boxrose" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff0ef"/>
+      <stop offset="100%" stop-color="#f5d1cd"/>
+    </linearGradient>
+    <linearGradient id="boxteal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#eefbf8"/>
+      <stop offset="100%" stop-color="#cfece5"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#6d715b" flood-opacity="0.18"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#202020"/>
+    </marker>
+    <style>
+      .title { font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 700; fill: #111111; }
+      .subtitle { font-family: Georgia, 'Times New Roman', serif; font-size: 18px; fill: #2c3a2c; }
+      .paneltitle { font-family: Georgia, 'Times New Roman', serif; font-size: 24px; font-weight: 700; fill: #1b1b1b; }
+      .rowlabel { font-family: Georgia, 'Times New Roman', serif; font-size: 20px; font-weight: 700; fill: #1d1d1d; }
+      .rowsub { font-family: Georgia, 'Times New Roman', serif; font-size: 13px; fill: #435143; }
+      .clocknum { font-family: Georgia, 'Times New Roman', serif; font-size: 17px; font-weight: 700; fill: #141414; }
+      .boxtext { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 700; fill: #1a1a1a; text-anchor: middle; dominant-baseline: middle; }
+      .smallbox { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #1a1a1a; text-anchor: middle; dominant-baseline: middle; }
+      .foot { font-family: Georgia, 'Times New Roman', serif; font-size: 16px; fill: #324232; }
+      .grid { stroke: #aebea7; stroke-width: 1.2; opacity: 0.55; }
+      .guide { stroke: #5f6e5c; stroke-width: 1.8; opacity: 0.85; }
+      .join { stroke: #222222; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect x="18" y="18" width="1564" height="1144" rx="40" fill="url(#bg)" stroke="#d9c9ba" stroke-width="5"/>
+
+  <text x="800" y="78" class="title" text-anchor="middle">Aggressive Parallel Schedule of Split FPGA Kernels</text>
+  <text x="800" y="112" class="subtitle" text-anchor="middle">Clock-axis packet view for the current N=200 aggressive build</text>
+
+  <rect x="62" y="138" width="1476" height="128" rx="28" fill="url(#clockbar)" filter="url(#shadow)"/>
+  <text x="800" y="170" class="paneltitle" text-anchor="middle">Clock Axis</text>
+  <line x1="326" y1="194" x2="1406" y2="194" stroke="#111111" stroke-width="5" marker-end="url(#arrow)"/>
+
+  <path d="M338 242 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38 h18 v-38 h18 v38"
+        fill="none" stroke="#1c1c1c" stroke-width="3.2"/>
+
+  <text x="382" y="215" class="clocknum">0</text>
+  <text x="492" y="215" class="clocknum">1</text>
+  <text x="602" y="215" class="clocknum">2</text>
+  <text x="712" y="215" class="clocknum">3</text>
+  <text x="822" y="215" class="clocknum">4</text>
+  <text x="932" y="215" class="clocknum">5</text>
+  <text x="1042" y="215" class="clocknum">6</text>
+  <text x="1152" y="215" class="clocknum">7</text>
+  <text x="1268" y="215" class="clocknum">...</text>
+
+  <rect x="62" y="292" width="1476" height="560" rx="30" fill="url(#panel)" stroke="#c8d8bf" stroke-width="2.5"/>
+  <text x="800" y="328" class="paneltitle" text-anchor="middle">Core Kernel Packet Pipeline</text>
+
+  <rect x="62" y="874" width="1476" height="216" rx="30" fill="url(#panel)" stroke="#c8d8bf" stroke-width="2.5"/>
+  <text x="800" y="910" class="paneltitle" text-anchor="middle">BOP DATAFLOW Packet Pipeline</text>
+
+  <line x1="320" y1="344" x2="320" y2="832" class="guide"/>
+  <line x1="320" y1="924" x2="320" y2="1068" class="guide"/>
+  <line x1="1410" y1="344" x2="1410" y2="832" class="guide"/>
+  <line x1="1410" y1="924" x2="1410" y2="1068" class="guide"/>
+
+  <line x1="430" y1="344" x2="430" y2="832" class="grid"/>
+  <line x1="540" y1="344" x2="540" y2="832" class="grid"/>
+  <line x1="650" y1="344" x2="650" y2="832" class="grid"/>
+  <line x1="760" y1="344" x2="760" y2="832" class="grid"/>
+  <line x1="870" y1="344" x2="870" y2="832" class="grid"/>
+  <line x1="980" y1="344" x2="980" y2="832" class="grid"/>
+  <line x1="1090" y1="344" x2="1090" y2="832" class="grid"/>
+  <line x1="1200" y1="344" x2="1200" y2="832" class="grid"/>
+  <line x1="1310" y1="344" x2="1310" y2="832" class="grid"/>
+
+  <line x1="430" y1="924" x2="430" y2="1068" class="grid"/>
+  <line x1="540" y1="924" x2="540" y2="1068" class="grid"/>
+  <line x1="650" y1="924" x2="650" y2="1068" class="grid"/>
+  <line x1="760" y1="924" x2="760" y2="1068" class="grid"/>
+  <line x1="870" y1="924" x2="870" y2="1068" class="grid"/>
+  <line x1="980" y1="924" x2="980" y2="1068" class="grid"/>
+  <line x1="1090" y1="924" x2="1090" y2="1068" class="grid"/>
+  <line x1="1200" y1="924" x2="1200" y2="1068" class="grid"/>
+  <line x1="1310" y1="924" x2="1310" y2="1068" class="grid"/>
+
+  <text x="110" y="386" class="rowlabel">Cross Sections</text>
+  <text x="110" y="405" class="rowsub">4 axial cells per clock</text>
+  <text x="110" y="452" class="rowlabel">Diff phi1</text>
+  <text x="110" y="500" class="rowlabel">Diff phi2</text>
+  <text x="110" y="548" class="rowlabel">RHS phi</text>
+  <text x="110" y="596" class="rowlabel">RHS C[0:5]</text>
+  <text x="110" y="644" class="rowlabel">Stage phi</text>
+  <text x="110" y="692" class="rowlabel">Stage C[0:5]</text>
+  <text x="110" y="740" class="rowlabel">Combine phi</text>
+  <text x="110" y="788" class="rowlabel">Combine C[0:5]</text>
+  <text x="110" y="836" class="rowlabel">Thermal RK4</text>
+  <text x="110" y="855" class="rowsub">8 axial cells per clock</text>
+
+  <rect x="342" y="362" width="86" height="34" rx="9" fill="url(#boxblue)" stroke="#8898b6" filter="url(#shadow)"/><text x="385" y="380" class="smallbox">p0</text>
+  <rect x="452" y="362" width="86" height="34" rx="9" fill="url(#boxblue)" stroke="#8898b6" filter="url(#shadow)"/><text x="495" y="380" class="smallbox">p1</text>
+  <rect x="562" y="362" width="86" height="34" rx="9" fill="url(#boxblue)" stroke="#8898b6" filter="url(#shadow)"/><text x="605" y="380" class="smallbox">p2</text>
+  <rect x="672" y="362" width="86" height="34" rx="9" fill="url(#boxblue)" stroke="#8898b6" filter="url(#shadow)"/><text x="715" y="380" class="smallbox">p3</text>
+  <rect x="782" y="362" width="86" height="34" rx="9" fill="url(#boxblue)" stroke="#8898b6" filter="url(#shadow)"/><text x="825" y="380" class="smallbox">p4</text>
+  <rect x="892" y="362" width="86" height="34" rx="9" fill="url(#boxblue)" stroke="#8898b6" filter="url(#shadow)"/><text x="935" y="380" class="smallbox">p5</text>
+  <rect x="1002" y="362" width="86" height="34" rx="9" fill="url(#boxblue)" stroke="#8898b6" filter="url(#shadow)"/><text x="1045" y="380" class="smallbox">p6</text>
+  <rect x="1112" y="362" width="86" height="34" rx="9" fill="url(#boxblue)" stroke="#8898b6" filter="url(#shadow)"/><text x="1155" y="380" class="smallbox">p7</text>
+
+  <rect x="342" y="430" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="385" y="448" class="smallbox">p0</text>
+  <rect x="452" y="430" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="495" y="448" class="smallbox">p1</text>
+  <rect x="562" y="430" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="605" y="448" class="smallbox">p2</text>
+  <rect x="672" y="430" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="715" y="448" class="smallbox">p3</text>
+  <rect x="782" y="430" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="825" y="448" class="smallbox">p4</text>
+  <rect x="892" y="430" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="935" y="448" class="smallbox">p5</text>
+  <rect x="1002" y="430" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="1045" y="448" class="smallbox">p6</text>
+  <rect x="1112" y="430" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="1155" y="448" class="smallbox">p7</text>
+
+  <rect x="452" y="478" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="495" y="496" class="smallbox">p0</text>
+  <rect x="562" y="478" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="605" y="496" class="smallbox">p1</text>
+  <rect x="672" y="478" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="715" y="496" class="smallbox">p2</text>
+  <rect x="782" y="478" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="825" y="496" class="smallbox">p3</text>
+  <rect x="892" y="478" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="935" y="496" class="smallbox">p4</text>
+  <rect x="1002" y="478" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="1045" y="496" class="smallbox">p5</text>
+  <rect x="1112" y="478" width="86" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="1155" y="496" class="smallbox">p6</text>
+
+  <rect x="562" y="526" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="605" y="544" class="smallbox">p0</text>
+  <rect x="672" y="526" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="715" y="544" class="smallbox">p1</text>
+  <rect x="782" y="526" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="825" y="544" class="smallbox">p2</text>
+  <rect x="892" y="526" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="935" y="544" class="smallbox">p3</text>
+  <rect x="1002" y="526" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="1045" y="544" class="smallbox">p4</text>
+  <rect x="1112" y="526" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="1155" y="544" class="smallbox">p5</text>
+
+  <rect x="672" y="574" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="715" y="592" class="smallbox">p0</text>
+  <rect x="782" y="574" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="825" y="592" class="smallbox">p1</text>
+  <rect x="892" y="574" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="935" y="592" class="smallbox">p2</text>
+  <rect x="1002" y="574" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="1045" y="592" class="smallbox">p3</text>
+  <rect x="1112" y="574" width="86" height="34" rx="9" fill="url(#boxrose)" stroke="#b59690" filter="url(#shadow)"/><text x="1155" y="592" class="smallbox">p4</text>
+
+  <rect x="782" y="622" width="86" height="34" rx="9" fill="url(#boxgreen)" stroke="#88a88a" filter="url(#shadow)"/><text x="825" y="640" class="smallbox">p0</text>
+  <rect x="892" y="622" width="86" height="34" rx="9" fill="url(#boxgreen)" stroke="#88a88a" filter="url(#shadow)"/><text x="935" y="640" class="smallbox">p1</text>
+  <rect x="1002" y="622" width="86" height="34" rx="9" fill="url(#boxgreen)" stroke="#88a88a" filter="url(#shadow)"/><text x="1045" y="640" class="smallbox">p2</text>
+  <rect x="1112" y="622" width="86" height="34" rx="9" fill="url(#boxgreen)" stroke="#88a88a" filter="url(#shadow)"/><text x="1155" y="640" class="smallbox">p3</text>
+
+  <rect x="892" y="670" width="86" height="34" rx="9" fill="url(#boxgreen)" stroke="#88a88a" filter="url(#shadow)"/><text x="935" y="688" class="smallbox">p0</text>
+  <rect x="1002" y="670" width="86" height="34" rx="9" fill="url(#boxgreen)" stroke="#88a88a" filter="url(#shadow)"/><text x="1045" y="688" class="smallbox">p1</text>
+  <rect x="1112" y="670" width="86" height="34" rx="9" fill="url(#boxgreen)" stroke="#88a88a" filter="url(#shadow)"/><text x="1155" y="688" class="smallbox">p2</text>
+
+  <rect x="1002" y="718" width="86" height="34" rx="9" fill="url(#boxgold)" stroke="#b8a167" filter="url(#shadow)"/><text x="1045" y="736" class="smallbox">p0</text>
+  <rect x="1112" y="718" width="86" height="34" rx="9" fill="url(#boxgold)" stroke="#b8a167" filter="url(#shadow)"/><text x="1155" y="736" class="smallbox">p1</text>
+
+  <rect x="1112" y="766" width="86" height="34" rx="9" fill="url(#boxgold)" stroke="#b8a167" filter="url(#shadow)"/><text x="1155" y="784" class="smallbox">p0</text>
+
+  <rect x="342" y="812" width="96" height="34" rx="9" fill="url(#boxteal)" stroke="#84aba4" filter="url(#shadow)"/><text x="390" y="830" class="smallbox">k1</text>
+  <rect x="452" y="812" width="96" height="34" rx="9" fill="url(#boxteal)" stroke="#84aba4" filter="url(#shadow)"/><text x="500" y="830" class="smallbox">stage12</text>
+  <rect x="562" y="812" width="96" height="34" rx="9" fill="url(#boxteal)" stroke="#84aba4" filter="url(#shadow)"/><text x="610" y="830" class="smallbox">k2</text>
+  <rect x="672" y="812" width="96" height="34" rx="9" fill="url(#boxteal)" stroke="#84aba4" filter="url(#shadow)"/><text x="720" y="830" class="smallbox">stage23</text>
+  <rect x="782" y="812" width="96" height="34" rx="9" fill="url(#boxteal)" stroke="#84aba4" filter="url(#shadow)"/><text x="830" y="830" class="smallbox">k3</text>
+  <rect x="892" y="812" width="96" height="34" rx="9" fill="url(#boxteal)" stroke="#84aba4" filter="url(#shadow)"/><text x="940" y="830" class="smallbox">stage34</text>
+  <rect x="1002" y="812" width="96" height="34" rx="9" fill="url(#boxteal)" stroke="#84aba4" filter="url(#shadow)"/><text x="1050" y="830" class="smallbox">k4</text>
+  <rect x="1112" y="812" width="96" height="34" rx="9" fill="url(#boxteal)" stroke="#84aba4" filter="url(#shadow)"/><text x="1160" y="830" class="smallbox">combine</text>
+
+  <path d="M286 380 H336" class="join"/>
+  <path d="M286 830 H336" class="join"/>
+  <path d="M1200 380 H1360" class="join"/>
+  <path d="M1200 830 H1360" class="join"/>
+  <rect x="1368" y="344" width="118" height="68" rx="12" fill="url(#boxrose)" stroke="#c48c84" filter="url(#shadow)"/>
+  <text x="1427" y="373" class="smallbox">rho</text>
+  <text x="1427" y="394" class="smallbox">power</text>
+  <rect x="1368" y="794" width="118" height="52" rx="12" fill="url(#boxrose)" stroke="#c48c84" filter="url(#shadow)"/>
+  <text x="1427" y="820" class="smallbox">Ts out</text>
+
+  <text x="110" y="970" class="rowlabel">HX1</text>
+  <text x="110" y="989" class="rowsub">4 axial cells per clock</text>
+  <text x="110" y="1036" class="rowlabel">HX2</text>
+  <text x="110" y="1055" class="rowsub">4 axial cells per clock</text>
+
+  <rect x="342" y="946" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="390" y="964" class="smallbox">k1</text>
+  <rect x="452" y="946" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="500" y="964" class="smallbox">stage12</text>
+  <rect x="562" y="946" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="610" y="964" class="smallbox">k2</text>
+  <rect x="672" y="946" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="720" y="964" class="smallbox">stage23</text>
+  <rect x="782" y="946" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="830" y="964" class="smallbox">k3</text>
+  <rect x="892" y="946" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="940" y="964" class="smallbox">stage34</text>
+  <rect x="1002" y="946" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="1050" y="964" class="smallbox">k4</text>
+  <rect x="1112" y="946" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="1160" y="964" class="smallbox">combine</text>
+
+  <rect x="342" y="1012" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="390" y="1030" class="smallbox">k1</text>
+  <rect x="452" y="1012" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="500" y="1030" class="smallbox">stage12</text>
+  <rect x="562" y="1012" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="610" y="1030" class="smallbox">k2</text>
+  <rect x="672" y="1012" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="720" y="1030" class="smallbox">stage23</text>
+  <rect x="782" y="1012" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="830" y="1030" class="smallbox">k3</text>
+  <rect x="892" y="1012" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="940" y="1030" class="smallbox">stage34</text>
+  <rect x="1002" y="1012" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="1050" y="1030" class="smallbox">k4</text>
+  <rect x="1112" y="1012" width="96" height="34" rx="9" fill="url(#boxgray)" stroke="#8d8d8d" filter="url(#shadow)"/><text x="1160" y="1030" class="smallbox">combine</text>
+
+  <path d="M1210 964 H1316 V998" class="join"/>
+  <path d="M1210 1030 H1316 V998" class="join"/>
+  <rect x="1324" y="972" width="124" height="52" rx="12" fill="url(#boxrose)" stroke="#c48c84" filter="url(#shadow)"/>
+  <text x="1386" y="998" class="smallbox">Brayton</text>
+  <path d="M1448 998 H1502" class="join"/>
+  <rect x="1368" y="1028" width="118" height="52" rx="12" fill="url(#boxrose)" stroke="#c48c84" filter="url(#shadow)"/>
+  <text x="1427" y="1054" class="smallbox">T2r out</text>
+
+  <text x="800" y="1130" class="foot" text-anchor="middle">Steady-state packet window only; this figure is not the full absolute 13,723-cycle trace.</text>
+</svg>

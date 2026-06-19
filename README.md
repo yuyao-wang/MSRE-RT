@@ -45,7 +45,7 @@ Those tops are intentionally separate from `msr_step_kernel`:
 - `msr_hx2_bench`
 - `msr_power_reduction_bench`
 
-Their purpose is fast iterative synthesis, not final integration. Each top isolates one compute block while keeping the same inner implementation used by the monolithic step kernel.
+Their purpose is fast iterative synthesis for module-level timing and resource calibration. Each top isolates one compute block while keeping the same inner implementation used by the monolithic step kernel.
 
 The corresponding TCL entry points live under `vitis/hls_modules/` and write into `vitis/hls_module_work/`, so they do not collide with the existing monolithic `vitis/hls_work/` runs. That separation is deliberate: module experiments can be launched, deleted, and compared without perturbing the long-running full-step synthesis jobs.
 
@@ -94,7 +94,7 @@ The main same-step synchronization boundaries remain:
 - `Ts_core_L`, `Tss_HX1_L`, `Tsss_HX2_L` across thermal and HX stages
 - precursor outlet history and delay-line writeback across steps
 
-That means most coarse physics kernels remain serial inside one outer step, while the main latency reduction path comes from aggressive intra-kernel parallelism and future task-level overlap across step boundaries.
+That means most coarse physics kernels remain serial inside one outer step, while the main latency reduction path combines aggressive intra-kernel parallelism with host-intermediated task-level overlap across physical delay boundaries.
 
 For the longer design discussion, see `docs/cpp_vitis_conversion.md`.
 For the staged precision roadmap, see `docs/mixed_precision_plan.md`.

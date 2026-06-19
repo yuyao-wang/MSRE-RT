@@ -1,0 +1,19 @@
+schedule_name,state_order,state_id,st_id,op_count,categories,calls
+hx_kernel,1,1,1,22,"{""axi_read"": 1, ""other"": 21}",{}
+hx_kernel,2,2,2,1,"{""other"": 1}",{}
+hx_kernel,3,3,3,10,"{""axi_read"": 8, ""other"": 1, ""user_call"": 1}","{""hx_rhs"": 1}"
+hx_kernel,4,4,4,2,"{""other"": 1, ""user_call"": 1}","{""hx_rhs"": 1}"
+hx_kernel,5,5,5,1,"{""user_call"": 1}","{""hx_kernel_Pipeline_VITIS_LOOP_956_2"": 1}"
+hx_kernel,6,6,6,1,"{""user_call"": 1}","{""hx_kernel_Pipeline_VITIS_LOOP_956_2"": 1}"
+hx_kernel,7,7,7,2,"{""other"": 1, ""user_call"": 1}","{""hx_rhs"": 1}"
+hx_kernel,8,8,8,2,"{""other"": 1, ""user_call"": 1}","{""hx_rhs"": 1}"
+hx_kernel,9,9,9,2,"{""other"": 1, ""user_call"": 1}","{""hx_kernel_Pipeline_VITIS_LOOP_964_3"": 1}"
+hx_kernel,10,10,10,2,"{""other"": 1, ""user_call"": 1}","{""hx_kernel_Pipeline_VITIS_LOOP_964_3"": 1}"
+hx_kernel,11,11,11,2,"{""other"": 1, ""user_call"": 1}","{""hx_rhs"": 1}"
+hx_kernel,12,12,12,2,"{""other"": 1, ""user_call"": 1}","{""hx_rhs"": 1}"
+hx_kernel,13,13,13,2,"{""other"": 1, ""user_call"": 1}","{""hx_kernel_Pipeline_VITIS_LOOP_972_4"": 1}"
+hx_kernel,14,14,14,2,"{""other"": 1, ""user_call"": 1}","{""hx_kernel_Pipeline_VITIS_LOOP_972_4"": 1}"
+hx_kernel,15,15,15,2,"{""other"": 1, ""user_call"": 1}","{""hx_rhs"": 1}"
+hx_kernel,16,16,16,2,"{""other"": 1, ""user_call"": 1}","{""hx_rhs"": 1}"
+hx_kernel,17,17,17,2,"{""other"": 1, ""user_call"": 1}","{""hx_kernel_Pipeline_VITIS_LOOP_981_5"": 1}"
+hx_kernel,18,18,18,2,"{""other"": 1, ""user_call"": 1}","{""hx_kernel_Pipeline_VITIS_LOOP_981_5"": 1}"

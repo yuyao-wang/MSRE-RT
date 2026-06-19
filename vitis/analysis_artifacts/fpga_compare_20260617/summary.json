@@ -1,0 +1,553 @@
+{
+  "board_bop": {
+    "Ts_HX1_0_K": 904.9560697093124,
+    "Tss_HX1_L_K": 896.0213945038984,
+    "Tss_HX2_0_K": 816.2673853477082,
+    "Tsss_HX2_L_K": 846.4997089422715,
+    "Tsss_pp_0_K": 807.9801062815578
+  },
+  "board_core": {
+    "Ts_core_inlet_K": 904.9941026835708,
+    "Ts_core_outlet_K": 938.3456603324822,
+    "fuel_mid_K": 928.8999680100807,
+    "graphite_mid_K": 934.3127474625123,
+    "phi_mid": 1.433989757310741,
+    "power_W": 99382.89071033763,
+    "rho": -2.2204460492503136e-16
+  },
+  "bop_cpu_rows": [
+    {
+      "abs_diff": 0.0,
+      "board": 904.9560697093124,
+      "metric": "Ts_HX1_0_K",
+      "reference": 904.9560697093124,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 896.0213945038984,
+      "metric": "Tss_HX1_L_K",
+      "reference": 896.0213945038984,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 816.2673853477082,
+      "metric": "Tss_HX2_0_K",
+      "reference": 816.2673853477082,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 846.4997089422715,
+      "metric": "Tsss_HX2_L_K",
+      "reference": 846.4997089422715,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 807.9801062815578,
+      "metric": "Tsss_pp_0_K",
+      "reference": 807.9801062815578,
+      "rel_diff": 0.0
+    }
+  ],
+  "bop_csynth": {
+    "estimated_clock_ns": 7.419,
+    "ii": "?",
+    "lat_max": 2334,
+    "lat_min": 2334,
+    "pipeline": "?",
+    "resources": {
+      "BRAM_18K": "48",
+      "DSP": "1190",
+      "FF": "127440",
+      "LUT": "164114",
+      "URAM": "0"
+    },
+    "target_clock_ns": 10.0
+  },
+  "bop_rows": [
+    {
+      "abs_diff": -4.381925577945367e-06,
+      "board": 904.9560697093124,
+      "metric": "Ts_HX1_0_K",
+      "reference": 904.956074091238,
+      "rel_diff": -4.842141738587391e-09
+    },
+    {
+      "abs_diff": -1.5774304529259098e-06,
+      "board": 896.0213945038984,
+      "metric": "Tss_HX1_L_K",
+      "reference": 896.0213960813288,
+      "rel_diff": -1.7604830195179087e-09
+    },
+    {
+      "abs_diff": -7.104511610123154e-06,
+      "board": 816.2673853477082,
+      "metric": "Tss_HX2_0_K",
+      "reference": 816.2673924522198,
+      "rel_diff": -8.703657252288215e-09
+    },
+    {
+      "abs_diff": 3.5640950954984874e-06,
+      "board": 846.4997089422715,
+      "metric": "Tsss_HX2_L_K",
+      "reference": 846.4997053781764,
+      "rel_diff": 4.210391418749776e-09
+    },
+    {
+      "abs_diff": 0.3721756209860132,
+      "board": 807.9801062815578,
+      "metric": "Tsss_pp_0_K",
+      "reference": 807.6079306605718,
+      "rel_diff": 0.0004608370062458367
+    }
+  ],
+  "core_cpu_rows": [
+    {
+      "abs_diff": 0.0,
+      "board": -2.2204460492503136e-16,
+      "metric": "rho",
+      "reference": -2.2204460492503136e-16,
+      "rel_diff": -0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 99382.89071033763,
+      "metric": "power_W",
+      "reference": 99382.89071033763,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 1.433989757310741,
+      "metric": "phi_mid",
+      "reference": 1.433989757310741,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 928.8999680100807,
+      "metric": "fuel_mid_K",
+      "reference": 928.8999680100807,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 934.3127474625123,
+      "metric": "graphite_mid_K",
+      "reference": 934.3127474625123,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 938.3456603324822,
+      "metric": "Ts_core_outlet_K",
+      "reference": 938.3456603324822,
+      "rel_diff": 0.0
+    }
+  ],
+  "core_csynth": {
+    "estimated_clock_ns": 7.672,
+    "ii": "?",
+    "lat_max": 13783,
+    "lat_min": 13723,
+    "pipeline": "?",
+    "resources": {
+      "BRAM_18K": "40",
+      "DSP": "6034",
+      "FF": "622831",
+      "LUT": "686798",
+      "URAM": "0"
+    },
+    "target_clock_ns": 10.0
+  },
+  "core_rows": [
+    {
+      "abs_diff": -2.2204460492503136e-16,
+      "board": -2.2204460492503136e-16,
+      "metric": "rho",
+      "reference": 0.0,
+      "rel_diff": 0.0
+    },
+    {
+      "abs_diff": 1.4794932212680578e-07,
+      "board": 99382.89071033763,
+      "metric": "power_W",
+      "reference": 99382.89071018968,
+      "rel_diff": 1.4886800038674727e-12
+    },
+    {
+      "abs_diff": 1.340616506695369e-11,
+      "board": 1.433989757310741,
+      "metric": "phi_mid",
+      "reference": 1.4339897572973348,
+      "rel_diff": 9.3488569208615e-12
+    },
+    {
+      "abs_diff": -1.1368683772161603e-13,
+      "board": 928.8999680100807,
+      "metric": "fuel_mid_K",
+      "reference": 928.8999680100808,
+      "rel_diff": -1.223886765387231e-16
+    },
+    {
+      "abs_diff": 2.2737367544323206e-13,
+      "board": 934.3127474625123,
+      "metric": "graphite_mid_K",
+      "reference": 934.3127474625121,
+      "rel_diff": 2.4335927778011515e-16
+    },
+    {
+      "abs_diff": 0.0,
+      "board": 938.3456603324822,
+      "metric": "Ts_core_outlet_K",
+      "reference": 938.3456603324822,
+      "rel_diff": 0.0
+    }
+  ],
+  "cpu_run": {
+    "raw_stdout": "timing.repeats=200\ntiming.warmup=20\ntiming.core.min_us=9.75\ntiming.core.max_us=35.875\ntiming.core.avg_us=10.781274999999999\ntiming.bop.min_us=2.125\ntiming.bop.max_us=6.375\ntiming.bop.avg_us=2.2664599999999995\ncore.rho=-2.2204460492503136e-16\ncore.power=99382.890710337626\ncore.phi_mid=1.433989757310741\ncore.fuel_mid=928.89996801008067\ncore.graphite_mid=934.31274746251233\ncore.Ts_core_inlet=904.99410268357076\ncore.Ts_core_outlet=938.34566033248223\nbop.Ts_HX1_0=904.95606970931237\nbop.Tss_HX1_L=896.02139450389836\nbop.Tss_HX2_0=816.26738534770823\nbop.Tsss_HX2_L=846.49970894227147\nbop.Tsss_pp_0=807.98010628155782\ntiming.checksum=22041991.57965624\n",
+    "reference": {
+      "Ts_HX1_0_K": 904.9560697093124,
+      "Ts_core_inlet_K": 904.9941026835708,
+      "Ts_core_outlet_K": 938.3456603324822,
+      "Tss_HX1_L_K": 896.0213945038984,
+      "Tss_HX2_0_K": 816.2673853477082,
+      "Tsss_HX2_L_K": 846.4997089422715,
+      "Tsss_pp_0_K": 807.9801062815578,
+      "fuel_mid_K": 928.8999680100807,
+      "graphite_mid_K": 934.3127474625123,
+      "phi_mid": 1.433989757310741,
+      "power_W": 99382.89071033763,
+      "rho": -2.2204460492503136e-16
+    },
+    "timing": {
+      "bop_avg_us": 2.2664599999999995,
+      "bop_max_us": 6.375,
+      "bop_min_us": 2.125,
+      "checksum": 22041991.57965624,
+      "core_avg_us": 10.781274999999999,
+      "core_max_us": 35.875,
+      "core_min_us": 9.75,
+      "repeats": 200,
+      "warmup": 20
+    }
+  },
+  "cpu_snapshot": {
+    "bop_params": {
+      "bin_path": "/private/tmp/fpga_cpu_snapshot_remote_20260617/bop_params.bin",
+      "hex_path": "/private/tmp/remote_snapshot_20260617/bop_params.hex32",
+      "sha256": "350ab96fe81eb2fa614270e376d721fb7e5d2e2cd187ce544c8ef89c00b8eecf",
+      "size_bytes": 50248
+    },
+    "bop_state": {
+      "bin_path": "/private/tmp/fpga_cpu_snapshot_remote_20260617/bop_state.bin",
+      "hex_path": "/private/tmp/remote_snapshot_20260617/bop_state.hex32",
+      "sha256": "c3a3bfdfddb977ba504cb70e1da4ea9ddf4ebe2dab1fc21e87628495178e9152",
+      "size_bytes": 6400
+    },
+    "core_params": {
+      "bin_path": "/private/tmp/fpga_cpu_snapshot_remote_20260617/core_params.bin",
+      "hex_path": "/private/tmp/remote_snapshot_20260617/core_params.hex32",
+      "sha256": "350ab96fe81eb2fa614270e376d721fb7e5d2e2cd187ce544c8ef89c00b8eecf",
+      "size_bytes": 50248
+    },
+    "core_state": {
+      "bin_path": "/private/tmp/fpga_cpu_snapshot_remote_20260617/core_state.bin",
+      "hex_path": "/private/tmp/remote_snapshot_20260617/core_state.hex32",
+      "sha256": "108d18c5f6803a40779c23d5f35c17a31531abaa3a4ae03283459c3190d9aad1",
+      "size_bytes": 19128
+    }
+  },
+  "cpu_speedup_rows": [
+    {
+      "cpu_avg_us": 10.781274999999999,
+      "fpga_hls_mid_us": 275.06,
+      "fpga_vs_cpu_hls_speedup": 0.03919608449065658,
+      "fpga_vs_cpu_wait_speedup": 0.007206734625668449,
+      "fpga_wait_us": 1496.0,
+      "kernel": "core"
+    },
+    {
+      "cpu_avg_us": 2.2664599999999995,
+      "fpga_hls_mid_us": 46.68,
+      "fpga_vs_cpu_hls_speedup": 0.04855312767780633,
+      "fpga_vs_cpu_wait_speedup": 0.001465067873303167,
+      "fpga_wait_us": 1547.0,
+      "kernel": "bop"
+    },
+    {
+      "cpu_avg_us": 13.047735,
+      "fpga_hls_mid_us": 321.74,
+      "fpga_vs_cpu_hls_speedup": 0.040553661341455834,
+      "fpga_vs_cpu_wait_speedup": 0.004287786723627999,
+      "fpga_wait_us": 3043.0,
+      "kernel": "total_core_plus_bop"
+    }
+  ],
+  "hls_delta_rows": [
+    {
+      "baseline_mid_us": 382.18,
+      "bram_18k_ratio": 0.0847457627118644,
+      "current_mid_us": 275.06,
+      "dsp_ratio": 4.060565275908479,
+      "ff_ratio": 3.897492537687027,
+      "kernel": "core",
+      "latency_ratio": 0.7197132241352242,
+      "lut_ratio": 3.6927800240880937
+    },
+    {
+      "baseline_mid_us": 66.46,
+      "bram_18k_ratio": 0.46153846153846156,
+      "current_mid_us": 46.68,
+      "dsp_ratio": 2.7419354838709675,
+      "ff_ratio": 2.614851139791124,
+      "kernel": "bop",
+      "latency_ratio": 0.7023773698465243,
+      "lut_ratio": 2.155763976460698
+    }
+  ],
+  "plan_inputs": {
+    "Ts_HX1_L_K": 938.3126531569752,
+    "Ts_core_inlet_K": 904.9941026835708,
+    "Tss_HX1_0_K": 815.6103183424661,
+    "Tss_HX2_L_K": 896.1225049900445,
+    "Tsss_HX2_0_K": 807.1008622845299,
+    "external_reactivity": 0.0,
+    "rod_position": 0.0
+  },
+  "python_reference": {
+    "Ts_HX1_0_K": 904.956074091238,
+    "Ts_core_outlet_K": 938.3456603324822,
+    "Tss_HX1_L_K": 896.0213960813288,
+    "Tss_HX2_0_K": 816.2673924522198,
+    "Tsss_HX2_L_K": 846.4997053781764,
+    "Tsss_pp_0_K": 807.6079306605718,
+    "fuel_mid_K": 928.8999680100808,
+    "graphite_mid_K": 934.3127474625121,
+    "phi_mid": 1.4339897572973348,
+    "power_W": 99382.89071018968,
+    "rho": 0.0
+  },
+  "python_run": {
+    "reference": {
+      "Ts_HX1_0_K": 904.956074091238,
+      "Ts_core_outlet_K": 938.3456603324822,
+      "Tss_HX1_L_K": 896.0213960813288,
+      "Tss_HX2_0_K": 816.2673924522198,
+      "Tsss_HX2_L_K": 846.4997053781764,
+      "Tsss_pp_0_K": 807.6079306605718,
+      "fuel_mid_K": 928.8999680100808,
+      "graphite_mid_K": 934.3127474625121,
+      "phi_mid": 1.4339897572973348,
+      "power_W": 99382.89071018968,
+      "rho": 0.0
+    },
+    "timing": {
+      "avg_us": 18339.541758177802,
+      "max_us": 25078.0830392614,
+      "min_us": 12933.667050674558,
+      "repeats": 20,
+      "warmup": 2
+    }
+  },
+  "python_speedup_rows": [
+    {
+      "fpga_hls_mid_us": 321.74,
+      "fpga_vs_python_hls_speedup": 57.001124380486736,
+      "fpga_vs_python_wait_speedup": 6.026796502851726,
+      "fpga_wait_us": 3043.0,
+      "python_avg_us": 18339.541758177802,
+      "reference": "coupled_one_step"
+    }
+  ],
+  "run_log": {
+    "hw_open_timing": 62275.636,
+    "kernel_timings": {
+      "bop": {
+        "ap_start_write_ms": 1.292,
+        "exec_wait_ms": 1.547,
+        "final_ap_ctrl": "0x0000000E",
+        "polls": 1,
+        "reg_write_ms": 10.993,
+        "total_ms": 13.951
+      },
+      "core": {
+        "ap_start_write_ms": 1.329,
+        "exec_wait_ms": 1.496,
+        "final_ap_ctrl": "0x0000000E",
+        "polls": 1,
+        "reg_write_ms": 9.667,
+        "total_ms": 12.666
+      }
+    },
+    "plan_timing": 63368.946,
+    "program_timing": 45551.481,
+    "read_timings": [
+      {
+        "base": "0x40040000",
+        "duration_ms": 23.484,
+        "words": 16
+      },
+      {
+        "base": "0x40080000",
+        "duration_ms": 29.754,
+        "words": 16
+      }
+    ],
+    "write_timings": [
+      {
+        "base": "0x40000000",
+        "duration_ms": 137.801,
+        "words": 4782
+      },
+      {
+        "base": "0x40020000",
+        "duration_ms": 296.505,
+        "words": 12562
+      },
+      {
+        "base": "0x40040000",
+        "duration_ms": 12.607,
+        "words": 14
+      },
+      {
+        "base": "0x44A00010",
+        "duration_ms": 1.41,
+        "words": 2
+      },
+      {
+        "base": "0x44A0001C",
+        "duration_ms": 1.365,
+        "words": 2
+      },
+      {
+        "base": "0x44A00028",
+        "duration_ms": 1.378,
+        "words": 2
+      },
+      {
+        "base": "0x44A00034",
+        "duration_ms": 1.357,
+        "words": 2
+      },
+      {
+        "base": "0x44A00040",
+        "duration_ms": 1.338,
+        "words": 2
+      },
+      {
+        "base": "0x44A0004C",
+        "duration_ms": 1.329,
+        "words": 2
+      },
+      {
+        "base": "0x40050000",
+        "duration_ms": 41.555,
+        "words": 1600
+      },
+      {
+        "base": "0x40060000",
+        "duration_ms": 324.856,
+        "words": 12562
+      },
+      {
+        "base": "0x40080000",
+        "duration_ms": 1.489,
+        "words": 10
+      },
+      {
+        "base": "0x44A10010",
+        "duration_ms": 1.491,
+        "words": 2
+      },
+      {
+        "base": "0x44A1001C",
+        "duration_ms": 1.362,
+        "words": 2
+      },
+      {
+        "base": "0x44A10028",
+        "duration_ms": 1.361,
+        "words": 2
+      },
+      {
+        "base": "0x44A10034",
+        "duration_ms": 1.345,
+        "words": 2
+      },
+      {
+        "base": "0x44A10040",
+        "duration_ms": 1.334,
+        "words": 2
+      },
+      {
+        "base": "0x44A1004C",
+        "duration_ms": 1.29,
+        "words": 2
+      },
+      {
+        "base": "0x44A10058",
+        "duration_ms": 1.332,
+        "words": 2
+      }
+    ]
+  },
+  "schedule_exports": [
+    {
+      "cycle_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/core_step_kernel_n200_s1_cycle_trace.csv",
+      "operations_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/core_step_kernel_n200_s1_operations.csv",
+      "schedule_name": "core_step_kernel_n200_s1",
+      "state_count": "3",
+      "states_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/core_step_kernel_n200_s1_states.csv"
+    },
+    {
+      "cycle_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/bop_step_kernel_n200_s1_cycle_trace.csv",
+      "operations_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/bop_step_kernel_n200_s1_operations.csv",
+      "schedule_name": "bop_step_kernel_n200_s1",
+      "state_count": "3",
+      "states_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/bop_step_kernel_n200_s1_states.csv"
+    },
+    {
+      "cycle_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/cross_sections_kernel_cycle_trace.csv",
+      "operations_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/cross_sections_kernel_operations.csv",
+      "schedule_name": "cross_sections_kernel",
+      "state_count": "32",
+      "states_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/cross_sections_kernel_states.csv"
+    },
+    {
+      "cycle_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/neutronics_kernel_cycle_trace.csv",
+      "operations_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/neutronics_kernel_operations.csv",
+      "schedule_name": "neutronics_kernel",
+      "state_count": "61",
+      "states_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/neutronics_kernel_states.csv"
+    },
+    {
+      "cycle_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/thermal_kernel_cycle_trace.csv",
+      "operations_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/thermal_kernel_operations.csv",
+      "schedule_name": "thermal_kernel",
+      "state_count": "19",
+      "states_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/thermal_kernel_states.csv"
+    },
+    {
+      "cycle_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/hx_kernel_cycle_trace.csv",
+      "operations_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/hx_kernel_operations.csv",
+      "schedule_name": "hx_kernel",
+      "state_count": "18",
+      "states_csv": "/Users/ouuyou/Project/MSRE_Project/MSR1DPython/vitis/analysis_artifacts/fpga_compare_20260617/hx_kernel_states.csv"
+    }
+  ],
+  "status_log": {
+    "BIT_READY": "C:\\Users\\yuyao\\MSR1DPython_vitis\\b_clean\\outputs\\msr_split_vcu118.bit",
+    "BOP_OUT_EXISTS": "True PATH=C:\\Users\\yuyao\\MSR1DPython_vitis\\b\\offline_snapshot\\bop_boundary_out_clean.hex32",
+    "CHECK_BIT": "C:\\Users\\yuyao\\MSR1DPython_vitis\\b_clean\\outputs\\msr_split_vcu118.bit",
+    "CORE_OUT_EXISTS": "True PATH=C:\\Users\\yuyao\\MSR1DPython_vitis\\b\\offline_snapshot\\core_boundary_out_clean.hex32",
+    "HOST_EXIT_CODE": "0",
+    "RUN_HOST_PLAN": "C:\\Users\\yuyao\\MSR1DPython_vitis\\b\\offline_snapshot\\remote_run_clean_plan.tcl",
+    "first_timestamp": "2026-06-17 19:26:28",
+    "last_timestamp": "2026-06-17 19:27:43",
+    "total_seconds": 75.0
+  }
+}

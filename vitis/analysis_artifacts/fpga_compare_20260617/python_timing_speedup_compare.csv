@@ -1,0 +1,2 @@
+reference,python_avg_us,fpga_hls_mid_us,fpga_wait_us,fpga_vs_python_hls_speedup,fpga_vs_python_wait_speedup
+coupled_one_step,18339.541758177802,321.74,3043.0,57.001124380486736,6.026796502851726

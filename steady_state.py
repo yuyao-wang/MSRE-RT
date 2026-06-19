@@ -1,21 +1,25 @@
 import numpy as np
 from collections import deque
 
+from criticality import solve_critical_mode, solve_precursor_groups_steady_state
+from cross_sections import build_cross_sections
 from HX1 import HX1
 from HX2 import HX2
 from neutronics import neutronics
 from power_plant import power_plant_temp
+from point_kinetics import initialize_point_kinetics_state
+from precursor_loop import initialize_precursor_loop_state
 from thermal_hydraulics import thermal_hydraulics
 from transport_delay import transport_delay
 
 
 def _reference_multiplication_ratio(params, phi_1, phi_2, z):
     phi_ref = np.vstack([phi_1, phi_2])
-    production = np.trapz(
+    production = np.trapezoid(
         np.sum(np.asarray(params["nu_sigma_f_ref"], dtype=float) * phi_ref, axis=0),
         z,
     )
-    absorption = np.trapz(
+    absorption = np.trapezoid(
         np.sum(np.asarray(params["sigma_a_ref"], dtype=float) * phi_ref, axis=0),
         z,
     )
@@ -86,52 +90,131 @@ def solve_heat_exchanger_steady(hot_inlet, cold_inlet, config, num_points, tol=1
 
 
 def _hx1_config(params):
+    ua_hx = params.get("UA_hx", params["U_hx"])
     return {
         "dx": params["L_HX"] / max(params["Nx"] - 1, 1),
         "hot_velocity": -params["V_he_s"],
         "cold_velocity": params["V_he_ss"],
-        "hot_exchange_coeff": params["U_hx"] / (params["M_he_s"] * params["c_p_s"]),
-        "cold_exchange_coeff": params["U_hx"] / (params["M_he_ss"] * params["c_p_ss"]),
+        "hot_exchange_coeff": ua_hx / (params["M_he_s"] * params["c_p_s"]),
+        "cold_exchange_coeff": ua_hx / (params["M_he_ss"] * params["c_p_ss"]),
     }
 
 
 def _hx2_config(params):
+    ua_hx2 = params.get("UA2_hx", params["U2_hx"])
     return {
         "dx": params["L_HX2"] / max(params["Nx"] - 1, 1),
         "hot_velocity": -params["V_he2_s"],
         "cold_velocity": params["V_he2_ss"],
-        "hot_exchange_coeff": params["U2_hx"] / (params["M_he2_s"] * params["c_p_ss"]),
-        "cold_exchange_coeff": params["U2_hx"] / (params["M_he2_ss"] * params["c_p_sss"]),
+        "hot_exchange_coeff": ua_hx2 / (params["M_he2_s"] * params["c_p_ss"]),
+        "cold_exchange_coeff": ua_hx2 / (params["M_he2_ss"] * params["c_p_sss"]),
     }
 
 
-def initialize_system_steady_state(params, spinup_steps=180):
+def _solve_steady_neutronics_state(temperature_fuel, temperature_graphite, params):
+    raw_xs = build_cross_sections(
+        temperature_fuel=temperature_fuel,
+        temperature_graphite=temperature_graphite,
+        params=params,
+        rod_position=0.0,
+        external_reactivity=0.0,
+        fission_scale_override=1.0,
+    )
+    raw_mode = solve_critical_mode(raw_xs, params)
+    critical_scale = 1.0 / max(raw_mode["k_eff"], 1.0e-12)
+    params["critical_fission_scale"] = critical_scale
+
+    xs = build_cross_sections(
+        temperature_fuel=temperature_fuel,
+        temperature_graphite=temperature_graphite,
+        params=params,
+        rod_position=0.0,
+        external_reactivity=0.0,
+    )
+    mode = solve_critical_mode(xs, params)
+    phi_1 = np.asarray(mode["phi_1"], dtype=float)
+    phi_2 = np.asarray(mode["phi_2"], dtype=float)
+    fission_source = xs["nu_sigma_f"][0] * phi_1 + xs["nu_sigma_f"][1] * phi_2
+    precursor_groups = solve_precursor_groups_steady_state(fission_source, params)
+    delayed_source = np.sum(
+        np.asarray(params["lambda_i_np"], dtype=float)[:, None] * precursor_groups,
+        axis=0,
+    )
+
+    z = np.asarray(params["z"], dtype=float)
+    q_vol_unscaled = np.sum(xs["sigma_f"] * np.vstack([phi_1, phi_2]), axis=0)
+    raw_power = np.trapezoid(np.asarray(params["A_f"], dtype=float) * q_vol_unscaled, z)
+    power_scale = float(params["nominal_total_power"]) / max(raw_power, 1.0e-12)
+    q_prime = power_scale * np.asarray(params["A_f"], dtype=float) * q_vol_unscaled
+
+    params["power_scale"] = power_scale
+    params["phi_1_0"] = phi_1.copy()
+    params["phi_2_0"] = phi_2.copy()
+    params["phi_0"] = np.concatenate([phi_1, phi_2])
+    params["c0_groups"] = precursor_groups.copy()
+    params["c0"] = precursor_groups.reshape(-1).copy()
+    params["reference_multiplication_ratio"] = float(mode["k_eff"])
+    params["precursor_loop_state"] = initialize_precursor_loop_state(
+        precursor_groups=params["precursor_groups"],
+        seed_outlet=precursor_groups[:, -1],
+        outer_dt=params.get("outer_dt", 1.0),
+        tau_loop=params.get("precursor_loop_tau", params["tau_l"]),
+    )
+    params["last_effective_beta"] = float(
+        np.trapezoid(delayed_source, z) / max(np.trapezoid(fission_source, z), 1.0e-12)
+    )
+    initialize_point_kinetics_state(params, params["last_effective_beta"])
+
+    return {
+        "xs": xs,
+        "phi_1": phi_1,
+        "phi_2": phi_2,
+        "precursors": precursor_groups,
+        "q_prime": q_prime,
+        "critical_scale": critical_scale,
+        "k_eff": float(mode["k_eff"]),
+    }
+
+
+def _relax_thermal_loops(q_prime, params, spinup_steps):
     N = params["N"]
     Nx = params["Nx"]
-    precursor_groups = params["precursor_groups"]
+    z = np.asarray(params["z"], dtype=float)
 
-    y_n = np.zeros((params["neutronics_state_size"], 1))
-    y_th = np.zeros((2 * N, 1))
+    y_th_seed = np.asarray(params.get("y_th_init", []), dtype=float)
+    if y_th_seed.size == 2 * N:
+        y_th = y_th_seed.reshape(2 * N, 1)
+        temperature_fuel = y_th_seed[:N].copy()
+        temperature_graphite = y_th_seed[N:].copy()
+    else:
+        y_th = np.zeros((2 * N, 1))
+        temperature_fuel = np.asarray(params["initialS"], dtype=float).copy()
+        temperature_graphite = np.asarray(params["initialG"], dtype=float).copy()
+
+    y_hx1_seed = np.asarray(params.get("y_hx1_init", []), dtype=float)
+    y_hx2_seed = np.asarray(params.get("y_hx2_init", []), dtype=float)
     y_hx1 = np.zeros((2 * Nx, 1))
     y_hx2 = np.zeros((2 * Nx, 1))
-    y_hx1[:, 0] = np.concatenate([params["u_init"], params["v_init"]])
-    y_hx2[:, 0] = np.concatenate([params["u2_init"], params["v2_init"]])
-
-    temperature_fuel = np.asarray(params["initialS"], dtype=float).copy()
-    temperature_graphite = np.asarray(params["initialG"], dtype=float).copy()
-    q_prime = np.zeros(N)
+    if y_hx1_seed.size == 2 * Nx:
+        y_hx1[:, 0] = y_hx1_seed.reshape(-1)
+    else:
+        y_hx1[:, 0] = np.concatenate([params["u_init"], params["v_init"]])
+    if y_hx2_seed.size == 2 * Nx:
+        y_hx2[:, 0] = y_hx2_seed.reshape(-1)
+    else:
+        y_hx2[:, 0] = np.concatenate([params["u2_init"], params["v2_init"]])
 
     Tss_HX2_0 = float(params["Tss_in"])
     Ts_HX1_0 = float(params["Ts_in"])
     Tss_HX1_0 = float(params["Tss_in"])
     Tsss_pp_0 = float(params["Tsss_in"])
 
-    buffer_hx_c = deque()
-    buffer_c_hx = deque()
-    buffer_r_hx = deque()
-    buffer_hx_r = deque()
-    buffer_r_pp = deque()
-    buffer_pp_r = deque()
+    buffer_hx_c = deque(params.get("buffer_hx_c_init", []))
+    buffer_c_hx = deque(params.get("buffer_c_hx_init", []))
+    buffer_r_hx = deque(params.get("buffer_r_hx_init", []))
+    buffer_hx_r = deque(params.get("buffer_hx_r_init", []))
+    buffer_r_pp = deque(params.get("buffer_r_pp_init", []))
+    buffer_pp_r = deque(params.get("buffer_pp_r_init", []))
 
     Ts_in = float(params["Ts_in"])
     Ts_out = float(params["Ts_out"])
@@ -140,15 +223,9 @@ def initialize_system_steady_state(params, spinup_steps=180):
     Tsss_in = float(params["Tsss_in"])
     Tsss_out = float(params["Tsss_out"])
 
-    for step in range(int(spinup_steps)):
-        state = {
-            "temperature_fuel": temperature_fuel,
-            "temperature_graphite": temperature_graphite,
-            "rod_position": 0.0,
-            "external_reactivity": 0.0,
-        }
-        y_n, q_prime = neutronics(y_n[:, -1], state, step, params)
+    core_power = float(np.trapezoid(q_prime, z))
 
+    for step in range(int(spinup_steps)):
         if params.get("core_inlet_mode", "prescribed") == "hx_coupled":
             Ts_core_0 = transport_delay(
                 Ts_HX1_0,
@@ -161,7 +238,7 @@ def initialize_system_steady_state(params, spinup_steps=180):
         else:
             Ts_core_0 = Ts_in
 
-        y_th = thermal_hydraulics(y_th, q_prime, Ts_core_0, params, step)
+        y_th = thermal_hydraulics(y_th[:, -1], q_prime, Ts_core_0, params, step)
         temperature_fuel = y_th[:N, -1].T
         temperature_graphite = y_th[N:, -1].T
         Ts_core_L = float(temperature_fuel[-1])
@@ -182,7 +259,7 @@ def initialize_system_steady_state(params, spinup_steps=180):
             step,
             dt=params.get("outer_dt", 1.0),
         )
-        y_hx1 = HX1(y_hx1, Ts_HX1_L, Tss_HX1_0, params, step)
+        y_hx1 = HX1(y_hx1[:, -1], Ts_HX1_L, Tss_HX1_0, params, step)
         Ts_HX1 = y_hx1[:Nx, -1]
         Tss_HX1 = y_hx1[Nx:, -1]
         Ts_HX1_0 = float(Ts_HX1[0])
@@ -204,7 +281,7 @@ def initialize_system_steady_state(params, spinup_steps=180):
             step,
             dt=params.get("outer_dt", 1.0),
         )
-        y_hx2 = HX2(y_hx2, Tss_HX2_L, Tsss_HX2_0, params, step)
+        y_hx2 = HX2(y_hx2[:, -1], Tss_HX2_L, Tsss_HX2_0, params, step)
         Tss_HX2 = y_hx2[:Nx, -1]
         Tsss_HX2 = y_hx2[Nx:, -1]
         Tss_HX2_0 = float(Tss_HX2[0])
@@ -218,18 +295,73 @@ def initialize_system_steady_state(params, spinup_steps=180):
             step,
             dt=params.get("outer_dt", 1.0),
         )
+        params["brayton_available_heat_W"] = core_power
         Tsss_pp_0 = float(power_plant_temp(Tsss_pp_L, params, step))
 
-    z = np.asarray(params["z"], dtype=float)
-    final_neutronics_state = np.asarray(y_n[:, -1], dtype=float).copy()
-    final_thermal_state = np.asarray(y_th[:, -1], dtype=float).copy()
-    final_hx1_state = np.asarray(y_hx1[:, -1], dtype=float).copy()
-    final_hx2_state = np.asarray(y_hx2[:, -1], dtype=float).copy()
+    return {
+        "y_th_init": np.asarray(y_th[:, -1], dtype=float).copy(),
+        "y_hx1_init": np.asarray(y_hx1[:, -1], dtype=float).copy(),
+        "y_hx2_init": np.asarray(y_hx2[:, -1], dtype=float).copy(),
+        "buffer_hx_c_init": list(buffer_hx_c),
+        "buffer_c_hx_init": list(buffer_c_hx),
+        "buffer_r_hx_init": list(buffer_r_hx),
+        "buffer_hx_r_init": list(buffer_hx_r),
+        "buffer_r_pp_init": list(buffer_r_pp),
+        "buffer_pp_r_init": list(buffer_pp_r),
+        "initialS": np.asarray(temperature_fuel, dtype=float).copy(),
+        "initialG": np.asarray(temperature_graphite, dtype=float).copy(),
+        "u_init": np.asarray(Ts_HX1, dtype=float),
+        "v_init": np.asarray(Tss_HX1, dtype=float),
+        "u2_init": np.asarray(Tss_HX2, dtype=float),
+        "v2_init": np.asarray(Tsss_HX2, dtype=float),
+        "Ts_in": float(Ts_core_0),
+        "Ts_out": float(Ts_HX1_L),
+        "Tss_in": float(Tss_HX1_0),
+        "Tss_out": float(Tss_HX2_L),
+        "Tsss_in": float(Tsss_HX2_0),
+        "Tsss_out": float(Tsss_pp_L),
+        "core_power": core_power,
+    }
 
-    phi_1 = final_neutronics_state[:N]
-    phi_2 = final_neutronics_state[N:2 * N]
-    c_groups = final_neutronics_state[2 * N:].reshape(precursor_groups, N)
-    reference_ratio = _reference_multiplication_ratio(params, phi_1, phi_2, z)
+
+def initialize_system_steady_state(params, spinup_steps=180):
+    temperature_fuel = np.asarray(params["initialS"], dtype=float).copy()
+    temperature_graphite = np.asarray(params["initialG"], dtype=float).copy()
+
+    max_outer_iterations = int(params.get("steady_state_outer_iterations", 8))
+    convergence_tol = float(params.get("steady_state_tolerance", 5.0e-4))
+
+    neutronics_state = None
+    thermal_state = None
+
+    for _ in range(max_outer_iterations):
+        neutronics_state = _solve_steady_neutronics_state(temperature_fuel, temperature_graphite, params)
+        thermal_state = _relax_thermal_loops(neutronics_state["q_prime"], params, spinup_steps)
+
+        updated_fuel = np.asarray(thermal_state["initialS"], dtype=float)
+        updated_graphite = np.asarray(thermal_state["initialG"], dtype=float)
+        residual = max(
+            float(np.max(np.abs(updated_fuel - temperature_fuel))),
+            float(np.max(np.abs(updated_graphite - temperature_graphite))),
+        )
+
+        temperature_fuel = updated_fuel
+        temperature_graphite = updated_graphite
+        params.update(thermal_state)
+        params["T_s_ref"] = temperature_fuel.copy()
+        params["T_gr_ref"] = temperature_graphite.copy()
+
+        if residual < convergence_tol:
+            break
+
+    z = np.asarray(params["z"], dtype=float)
+    phi_1 = neutronics_state["phi_1"]
+    phi_2 = neutronics_state["phi_2"]
+    c_groups = np.asarray(neutronics_state["precursors"], dtype=float)
+    y_n_init = np.concatenate([phi_1, phi_2, c_groups.reshape(-1)])
+
+    params["last_global_rho"] = 0.0
+    params["y_n_init"] = y_n_init.copy()
 
     return {
         "phi_1_0": phi_1.copy(),
@@ -241,41 +373,25 @@ def initialize_system_steady_state(params, spinup_steps=180):
         "T_gr_ref": np.asarray(temperature_graphite, dtype=float).copy(),
         "initialS": np.asarray(temperature_fuel, dtype=float).copy(),
         "initialG": np.asarray(temperature_graphite, dtype=float).copy(),
-        "u_init": np.asarray(Ts_HX1, dtype=float),
-        "v_init": np.asarray(Tss_HX1, dtype=float),
-        "u2_init": np.asarray(Tss_HX2, dtype=float),
-        "v2_init": np.asarray(Tsss_HX2, dtype=float),
-        "y_n_init": final_neutronics_state,
-        "y_th_init": final_thermal_state,
-        "y_hx1_init": final_hx1_state,
-        "y_hx2_init": final_hx2_state,
-        "buffer_hx_c_init": list(buffer_hx_c),
-        "buffer_c_hx_init": list(buffer_c_hx),
-        "buffer_r_hx_init": list(buffer_r_hx),
-        "buffer_hx_r_init": list(buffer_hx_r),
-        "buffer_r_pp_init": list(buffer_r_pp),
-        "buffer_pp_r_init": list(buffer_pp_r),
+        "y_n_init": y_n_init.copy(),
         "history_step_offset": int(spinup_steps),
         "history_time_offset_s": float(spinup_steps) * float(params.get("outer_dt", 1.0)),
-        "Ts_in": float(Ts_core_0),
-        "Ts_out": float(Ts_HX1_L),
-        "Tss_in": float(Tss_HX1_0),
-        "Tss_out": float(Tss_HX2_L),
-        "Tsss_in": float(Tsss_HX2_0),
-        "Tsss_out": float(Tsss_pp_L),
-        "reference_multiplication_ratio": float(reference_ratio),
+        "reference_multiplication_ratio": float(neutronics_state["k_eff"]),
         "steady_state_summary": {
             "spinup_steps": int(spinup_steps),
-            "core_inlet_temperature": float(Ts_core_0),
-            "core_outlet_temperature": float(Ts_core_L),
-            "secondary_inlet_temperature": float(Tss_HX1_0),
-            "secondary_outlet_temperature": float(Tss_HX2_L),
-            "tertiary_inlet_temperature": float(Tsss_HX2_0),
-            "tertiary_outlet_temperature": float(Tsss_pp_L),
-            "core_power": float(np.trapz(q_prime, z)),
-            "global_reactivity": float(params.get("last_global_rho", 0.0)),
+            "core_inlet_temperature": float(params["Ts_in"]),
+            "core_outlet_temperature": float(params["Ts_out"]),
+            "secondary_inlet_temperature": float(params["Tss_in"]),
+            "secondary_outlet_temperature": float(params["Tss_out"]),
+            "tertiary_inlet_temperature": float(params["Tsss_in"]),
+            "tertiary_outlet_temperature": float(params["Tsss_out"]),
+            "core_power": float(np.trapezoid(neutronics_state["q_prime"], z)),
+            "critical_fission_scale": float(neutronics_state["critical_scale"]),
+            "effective_beta_flow": float(params.get("last_effective_beta", 0.0)),
+            "global_reactivity": 0.0,
             "brayton_net_work": float(params.get("last_power_plant", {}).get("W_net", 0.0)),
             "brayton_efficiency": float(params.get("last_power_plant", {}).get("eta_b", 0.0)),
+            "brayton_model": params.get("last_power_plant", {}).get("model", "ideal_gas_surrogate"),
             "history_time_offset_s": float(spinup_steps) * float(params.get("outer_dt", 1.0)),
         },
     }
