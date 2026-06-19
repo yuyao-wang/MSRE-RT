@@ -1,57 +1,55 @@
 # MSRE-RT
 
-A reproducible real-time digital-twin workflow for a 1-D flowing-fuel
-Molten-Salt Reactor Experiment model, spanning Python reference simulation,
-same-source C++ verification, and a host-mediated Vivado/Vitis HLS
-split-kernel workflow for VCU118 and dual-FPGA-ready deployment.
+A deterministic real-time digital-twin framework for the Molten-Salt Reactor
+Experiment, integrating flowing-fuel reactor dynamics, delayed
+core–balance-of-plant coupling, and FPGA-oriented host-mediated emulation for
+faster-than-real-time transient studies.
 
-[![Python >=3.10](https://img.shields.io/badge/python-%3E%3D3.10-3776AB.svg)](requirements.txt)
-[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg)](C++/CMakeLists.txt)
-[![Vivado/Vitis HLS](https://img.shields.io/badge/HLS-Vivado%2FVitis-8A2BE2.svg)](Vitis/README.md)
 [![Platform: VCU118](https://img.shields.io/badge/platform-VCU118-0B7285.svg)](Vitis/vcu118/README.md)
 [![Smoke tests](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml/badge.svg)](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 ![System overview](documentation/readme_assets/overview.png)
 
-## Highlights
+## System Contribution
 
-- End-to-end path: Python reference model -> same-source C++ -> HLS kernels.
-- Host-mediated split between reactor-core and balance-of-plant kernels at
-  modeled transport-delay boundaries.
-- Verification scripts for numerical consistency, delayed-neutron circulation,
-  and transient evaluation.
-- Hardware-oriented implementation for VCU118 and Vivado/Vitis HLS experiments,
-  including board setup photos, host tools, synthesis reports, and checked
-  analysis artifacts.
+- A deterministic transient model for flowing-fuel MSRE dynamics with explicit
+  delayed-neutron and heat-transport coupling.
+- A host-mediated emulation framework that separates reactor-core and
+  balance-of-plant execution while preserving modeled transport-delay
+  semantics.
+- Cross-level checks for numerical behavior, delayed-boundary consistency,
+  transient response, and board readback.
+- Hardware-oriented split-kernel execution artifacts for VCU118 experiments and
+  dual-FPGA-ready deployment studies.
 
 ## Key Results
 
 | Item | Result |
 | --- | --- |
-| Hardware platform | Host-mediated VCU118 / dual-FPGA-ready split-kernel workflow; current board validation through VCU118 JTAG-AXI runtime |
-| Core kernel | `core_step_kernel_n200_s1`, 13,723..13,783 cycles in the aggressive HLS comparison artifact |
-| BOP kernel | `bop_step_kernel_n200_s1`, 2,334 cycles in the aggressive HLS comparison artifact |
-| Step latency | 321.74 us HLS-only sequential core+BOP estimate; 3,043 us measured current board wait path |
-| Faster-than-real-time factor | 3.1e3x HLS-only and 329x current board wait path for a 1 s model step |
-| Python reference comparison | HLS-only path is 57.0x faster than the Python one-step reference; current board wait path is 6.03x faster |
-| Board readback consistency | VCU118 snapshot readback matches the same-source CPU kernel for the reported core/BOP boundary metrics |
+| Hardware platform | Host-mediated VCU118 / dual-FPGA-ready split-kernel emulation path; current board validation through VCU118 JTAG-AXI runtime |
+| Core split kernel | `core_step_kernel_n200_s1`, 13,723..13,783 cycles in the aggressive synthesis comparison artifact |
+| BOP split kernel | `bop_step_kernel_n200_s1`, 2,334 cycles in the aggressive synthesis comparison artifact |
+| Step latency | 321.74 us synthesis-estimated sequential core+BOP path; 3,043 us measured current board wait path |
+| Faster-than-real-time factor | 3.1e3x synthesis-estimated path and 329x current board wait path for a 1 s model step |
+| Numerical-reference comparison | Synthesis-estimated path is 57.0x faster than the one-step numerical reference; current board wait path is 6.03x faster |
+| Board readback consistency | VCU118 snapshot readback matches the verification-oriented software kernel for the reported core/BOP boundary metrics |
 
 The front-page latency numbers come from
 [`Vitis/analysis_artifacts/fpga_compare_20260617/report.md`](Vitis/analysis_artifacts/fpga_compare_20260617/report.md).
 Tracked synthesis reports under `documentation/synthesis_reports/` preserve the
-corresponding Vivado HLS report artifacts used for hardware discussion.
+corresponding report artifacts used for hardware discussion.
 
 ## What You Can Reproduce
 
 The repository supports three reproducibility levels:
 
-1. **Software smoke test:** Python import/runtime checks plus C++ and Vitis
-   syntax/build checks.
+1. **Software smoke test:** runtime checks plus verification-oriented and
+   FPGA-oriented source build checks.
 2. **Numerical verification:** transient comparison, split-scheduler
    consistency, and delayed-neutron circulation checks.
-3. **Hardware-oriented flow:** Vivado/Vitis HLS scripts, VCU118 host-side
-   tooling, and checked board-run analysis artifacts.
+3. **Hardware-oriented flow:** synthesis scripts, VCU118 host-side tooling,
+   and checked board-run analysis artifacts.
 
 Start with the one-command smoke script:
 
@@ -59,15 +57,21 @@ Start with the one-command smoke script:
 bash scripts/run_smoke_tests.sh
 ```
 
-## Repository Layout
+## Artifact Organization
+
+The artifact is organized around three roles: a numerical reference model for
+transient behavior, a verification-oriented software implementation for
+consistency testing, and FPGA-oriented kernels for host-mediated real-time
+emulation. This structure supports cross-level checking of model behavior,
+coupling semantics, and hardware execution characteristics.
 
 | Path | Purpose |
 | --- | --- |
-| `python/` | Executable Python reference model and physics modules |
-| `C++/` | Standalone plain C++ solver plus shared point-kinetics logic |
-| `Vitis/` | HLS-oriented kernels, VCU118 host tooling, Vivado/Vitis scripts, and hardware analysis artifacts |
+| `python/` | Numerical reference model and physics modules |
+| `C++/` | Verification-oriented software implementation plus shared point-kinetics logic |
+| `Vitis/` | FPGA-oriented kernels, VCU118 host tooling, Vivado/Vitis scripts, and hardware analysis artifacts |
 | `Verification_Evaluation/` | Verification scripts, reproducibility helpers, checked reference data, and generated-figure tooling |
-| `documentation/` | Documentation entry point, README figures, design notes, and HLS synthesis reports |
+| `documentation/` | Documentation entry point, README figures, design notes, and synthesis reports |
 
 Generated outputs should go under ignored output directories such as
 `Verification_Evaluation/outputs/`, `/tmp/...`, or tool-specific build
@@ -110,7 +114,7 @@ cmake --build /tmp/msre_cpp_build
   --output-dir /tmp/msre_cpp_smoke
 ```
 
-Run the local CMake syntax/build check for the HLS-oriented source:
+Run the local CMake syntax/build check for the FPGA-oriented source:
 
 ```sh
 cmake -S Vitis -B /tmp/msre_vitis_build
@@ -132,7 +136,7 @@ python3 -m Verification_Evaluation.async_split_prototype \
 ## Verification Snapshot
 
 The checked verification artifacts include delayed-neutron circulation
-comparisons, transient response metrics, CPU/HLS timing summaries, and board
+comparisons, transient response metrics, software/hardware timing summaries, and board
 readback comparisons.
 
 Useful entry points:
