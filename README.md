@@ -36,7 +36,13 @@ and is not part of the public repository.
 **Board-level experimental setup for the host-controlled VCU118
 implementation tests.**
 
-![Figure 3: Board-level experimental setup for the host-controlled VCU118 implementation tests.](documentation/readme_assets/figure3_board_setup.png)
+<p align="center">
+  <img
+    src="documentation/readme_assets/figure3_board_setup.png"
+    alt="Figure 3: Board-level experimental setup for the host-controlled VCU118 implementation tests."
+    width="420"
+  >
+</p>
 
 **Host-FPGA delayed-coupling scheduling.**
 
