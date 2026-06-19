@@ -23,9 +23,11 @@ From the repository root:
 python3 python/main.py --steps 2 --output-dir /tmp/msre_python_smoke --no-plots
 ```
 
-Simulation outputs are written under
-`Verification_Evaluation/simulation_results/` so the Python code directory
-stays source-only.
+By default, simulation outputs are written under the checked reference-data
+area `Verification_Evaluation/simulation_results/`. For smoke runs or new
+experiments, pass `--output-dir` to write under `/tmp/...` or an ignored
+artifact directory such as `Verification_Evaluation/outputs/...` so the Python
+code directory stays source-only.
 
 Common runtime inputs are exposed as arguments:
 
