@@ -33,16 +33,16 @@ and is not part of the public repository.
 
 ## Hardware Figures
 
-**Figure 3: Board-level experimental setup for the host-controlled VCU118
+**Board-level experimental setup for the host-controlled VCU118
 implementation tests.**
 
 ![Figure 3: Board-level experimental setup for the host-controlled VCU118 implementation tests.](documentation/readme_assets/figure3_board_setup.png)
 
-**Figure 4: Host-FPGA delayed-coupling scheduling.**
+**Host-FPGA delayed-coupling scheduling.**
 
 ![Figure 4: Host-FPGA delayed-coupling scheduling.](documentation/readme_assets/figure4_host_fpga_delayed_coupling.png)
 
-**Figure 12: HLS schedule diagram for the Nz = 200, s = 1 split design study.**
+**HLS schedule diagram for the Nz = 200, s = 1 split design study.**
 
 ![Figure 12: HLS schedule diagram for the Nz = 200, s = 1 split design study.](documentation/readme_assets/figure12_hls_schedule_nz200_s1.png)
 
