@@ -9,8 +9,6 @@ faster-than-real-time transient studies.
 [![Smoke tests](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml/badge.svg)](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-![System overview](documentation/readme_assets/overview.png)
-
 ## System Contribution
 
 - A deterministic transient model for flowing-fuel MSRE dynamics with explicit
