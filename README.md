@@ -135,8 +135,6 @@ The checked verification artifacts include delayed-neutron circulation
 comparisons, transient response metrics, CPU/HLS timing summaries, and board
 readback comparisons.
 
-![Delayed-neutron precursor comparison](Verification_Evaluation/DNP_comparison.png)
-
 Useful entry points:
 
 ```sh
