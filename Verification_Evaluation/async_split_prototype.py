@@ -452,6 +452,11 @@ def compare_async_split_against_reference(
 def main():
     parser = argparse.ArgumentParser(description="Prototype CPU-brokered async split scheduler.")
     parser.add_argument("--steps", type=int, default=24, help="Number of outer steps to simulate.")
+    parser.add_argument("--n", type=int, default=80, help="Axial grid points.")
+    parser.add_argument("--outer-dt", type=float, default=1.0, help="Outer-step duration in seconds.")
+    parser.add_argument("--steady-state-steps", type=int, default=180, help="Steady-state spinup steps.")
+    parser.add_argument("--control-pcm", type=float, default=0.0, help="Equivalent absorption event magnitude in pcm.")
+    parser.add_argument("--control-time-s", type=float, default=300.0, help="Control event start time in seconds.")
     parser.add_argument(
         "--order",
         choices=("core_then_bop", "bop_then_core"),
@@ -461,10 +466,20 @@ def main():
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
     args = parser.parse_args()
 
-    params = generate_parameters()
+    params = generate_parameters(N=args.n, outer_dt=args.outer_dt, steady_state_steps=args.steady_state_steps)
+    event_sequence = []
+    if args.control_pcm != 0.0:
+        event_sequence.append(
+            {
+                "event_type": "equivalent_absorption",
+                "start_time_s": args.control_time_s,
+                "magnitude": args.control_pcm,
+            }
+        )
     summary = compare_async_split_against_reference(
         params=params,
         num_steps=args.steps,
+        event_sequence=event_sequence,
         execution_order=args.order,
     )
 

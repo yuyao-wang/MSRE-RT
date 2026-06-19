@@ -1,3 +1,6 @@
+import argparse
+import inspect
+import json
 import numpy as np
 import os
 from collections import deque
@@ -19,6 +22,49 @@ from power_plant import power_plant_temp
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SIMULATION_RESULTS_DIR = REPO_ROOT / "Verification_Evaluation" / "simulation_results"
+
+
+def parse_scalar_value(text):
+    lowered = text.strip().lower()
+    if lowered in {"true", "yes", "on"}:
+        return True
+    if lowered in {"false", "no", "off"}:
+        return False
+    if lowered in {"none", "null"}:
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        pass
+    try:
+        return float(text)
+    except ValueError:
+        return text
+
+
+def parse_key_value(text):
+    if "=" not in text:
+        raise argparse.ArgumentTypeError("expected KEY=VALUE")
+    key, value = text.split("=", 1)
+    key = key.strip()
+    if not key:
+        raise argparse.ArgumentTypeError("empty KEY in KEY=VALUE")
+    return key, parse_scalar_value(value.strip())
+
+
+def parse_reactivity_schedule(text):
+    schedule = []
+    for item in text.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        if ":" not in item:
+            raise argparse.ArgumentTypeError("schedule entries must use time_s:pcm")
+        time_text, pcm_text = item.split(":", 1)
+        schedule.append((float(time_text), float(pcm_text)))
+    if not schedule:
+        raise argparse.ArgumentTypeError("schedule must contain at least one time_s:pcm entry")
+    return sorted(schedule, key=lambda pair: pair[0])
 
 
 def external_reactivity_from_schedule(params, time_s):
@@ -314,27 +360,27 @@ def run_simulation(params, index):
         if step > 0:
             rho_dt_matrix[step] = rho.mean() - rho_matrix[step - 1]
 
-    # Plotting results including Ts_HX1
-    plot_results(z=np.linspace(0, params['L'], N),
-                 phi=phi,
-                 ci=ci,
-                 rho=rho,
-                 rho_matrix=rho_matrix,
-                 temperature_fuel=temperature_fuel,
-                 temperature_graphite=temperature_graphite,
-                 Ts_HX1_matrix=Ts_HX1_matrix,
-                 Tss_HX1=Tss_HX1,
-                 Tss_HX2=Tss_HX2,
-                 Tsss_HX2=Tsss_HX2,
-                 phi_middle_matrix=phi_middle_matrix,
-                 temperature_fuel_middle_matrix=temperature_fuel_middle_matrix,
-                 temperature_graphite_middle_matrix=temperature_graphite_middle_matrix,
-                 ci_middle_matrix=ci_middle_matrix,
-                 rho_dt_matrix=rho_dt_matrix,
-                 neutron_dt_matrix=neutron_dt_matrix,
-                 total_power_matrix=total_power_matrix,
-                 system_diagnostics=system_diagnostics,
-                 index=index)
+    if params.get('make_plots', True):
+        plot_results(z=np.linspace(0, params['L'], N),
+                     phi=phi,
+                     ci=ci,
+                     rho=rho,
+                     rho_matrix=rho_matrix,
+                     temperature_fuel=temperature_fuel,
+                     temperature_graphite=temperature_graphite,
+                     Ts_HX1_matrix=Ts_HX1_matrix,
+                     Tss_HX1=Tss_HX1,
+                     Tss_HX2=Tss_HX2,
+                     Tsss_HX2=Tsss_HX2,
+                     phi_middle_matrix=phi_middle_matrix,
+                     temperature_fuel_middle_matrix=temperature_fuel_middle_matrix,
+                     temperature_graphite_middle_matrix=temperature_graphite_middle_matrix,
+                     ci_middle_matrix=ci_middle_matrix,
+                     rho_dt_matrix=rho_dt_matrix,
+                     neutron_dt_matrix=neutron_dt_matrix,
+                     total_power_matrix=total_power_matrix,
+                     system_diagnostics=system_diagnostics,
+                     index=index)
 
     saved_data.append({
                 'neutron_velocity': params['neutron_velocity'],
@@ -511,42 +557,115 @@ def save_system_diagnostics(system_diagnostics, index):
     SIMULATION_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     np.savez(SIMULATION_RESULTS_DIR / f'system_diagnostics_{index}.npz', **system_diagnostics)
 
-def main():
-    run_simulation(generate_parameters(), 0)
-    # Define ranges of values for parameters
-    # V_values = np.linspace(1.103497e6, 1.103497e8, 5)
-    # D_values = np.linspace(0.96343*7, 0.96343*8, 5)     
-    # sigma_a_values=np.linspace(0.002161937, 0.002161940, 30) # cm^-1        
-    # nu_sigma_f_values = np.linspace(3.33029e-2/7, 3.33029e-2/8, 5) # cm^-1
-    # L=22.9
-    # phi_0_values = np.linspace(1 * np.ones(200), 1e10*np.ones(200), 10)
-    # rho_init_values = np.linspace(-3e-5, 3e-5, 100)
-    # scale_values = [0, 1e-1, 1e-2, 1e-3, 1e-4]
-    # bc_s0_values = np.linspace(900, 940, 10)
-    # bc_sL_values = np.linspace(930, 990, 10)
-    # bc_g0_values = np.linspace(910, 950, 10)
-    # bc_gL_values = np.linspace(940, 1000, 10)
-    U_values = np.linspace(10000, 36000, 10)
+def build_parser():
+    parser = argparse.ArgumentParser(description="Run the coupled Python MSRE reference model.")
+    parser.add_argument("--steps", type=int, default=600, help="Number of outer time steps.")
+    parser.add_argument("--index", type=int, default=0, help="Simulation index used in output filenames.")
+    parser.add_argument("--output-dir", type=Path, default=SIMULATION_RESULTS_DIR, help="Directory for npz/csv/plot outputs.")
+    parser.add_argument("--selected-step", type=int, default=None, help="Step index for saved precursor-group CSV output.")
+    parser.add_argument("--n", type=int, default=80, help="Axial grid points.")
+    parser.add_argument("--dt", type=float, default=0.1, help="Inner/default ODE dt parameter.")
+    parser.add_argument("--outer-dt", type=float, default=1.0, help="Coupled outer-step duration in seconds.")
+    parser.add_argument("--steady-state-steps", type=int, default=180, help="Steady-state spinup steps.")
+    parser.add_argument("--no-steady-state", action="store_true", help="Disable steady-state initialization.")
+    parser.add_argument(
+        "--core-inlet-mode",
+        choices=("hx_coupled", "prescribed"),
+        default="hx_coupled",
+        help="Use the HX delay loop or prescribed inlet temperature.",
+    )
+    parser.add_argument("--control-pcm", type=float, default=0.0, help="Step reactivity insertion in pcm.")
+    parser.add_argument("--control-time-s", type=float, default=300.0, help="Time for --control-pcm insertion.")
+    parser.add_argument(
+        "--reactivity-schedule",
+        type=parse_reactivity_schedule,
+        default=None,
+        help="Comma-separated time_s:pcm schedule, e.g. '0:0,300:-75'. Overrides --control-pcm.",
+    )
+    parser.add_argument("--v-core", type=float, default=20.0, help="Core flow velocity in cm/s.")
+    parser.add_argument("--u-hx", type=float, default=5.0e5, help="HX1 heat-transfer coefficient.")
+    parser.add_argument("--u2-hx", type=float, default=5.0e5, help="HX2 heat-transfer coefficient.")
+    parser.add_argument("--brayton-mdot", type=float, default=100.0, help="Brayton mass flow input.")
+    parser.add_argument("--verbose", action="store_true", help="Print per-step progress.")
+    parser.add_argument("--log-every", type=int, default=1, help="Progress print cadence when --verbose is set.")
+    parser.add_argument("--no-plots", action="store_true", help="Skip PNG plot generation.")
+    parser.add_argument("--json", action="store_true", help="Print a compact JSON summary after the run.")
+    parser.add_argument(
+        "--set",
+        dest="overrides",
+        type=parse_key_value,
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Override any scalar generate_parameters argument or params dict value.",
+    )
+    return parser
 
-    # Generate parameter sets
-    parameter_sets = [
-        # generate_parameters(U=U) 
-        # for U in U_values
-        # for rho_init in rho_init_values
-        # for V in V_values
-        # for D in D_values
-        # for sigma_a in sigma_a_values
-        # for nu_sigma_f in nu_sigma_f_values
-        # for phi_0 in phi_0_values
-        # for scale in scale_values
-        # for bc_s0 in bc_s0_values
-        # for bc_sL in bc_sL_values
-        # for bc_g0 in bc_g0_values
-        # for bc_gL in bc_gL_values
-    ]
 
-    # Run simulations in parallel
-    # Parallel(n_jobs=-1)(delayed(run_simulation)(params, idx) for idx, params in enumerate(parameter_sets))
+def build_parameters_from_args(args):
+    generate_keys = set(inspect.signature(generate_parameters).parameters)
+    explicit_kwargs = {
+        "N": args.n,
+        "dt": args.dt,
+        "outer_dt": args.outer_dt,
+        "steady_state_steps": args.steady_state_steps,
+        "use_steady_state_initialization": not args.no_steady_state,
+        "core_inlet_mode": args.core_inlet_mode,
+        "v_core": args.v_core,
+        "U_hx": args.u_hx,
+        "U2_hx": args.u2_hx,
+        "brayton_mdot": args.brayton_mdot,
+    }
+    post_overrides = {}
+    for key, value in args.overrides:
+        if key in generate_keys:
+            explicit_kwargs[key] = value
+        else:
+            post_overrides[key] = value
+
+    params = generate_parameters(**explicit_kwargs)
+    params.update(post_overrides)
+    params["time_span"] = args.steps
+    params["selected_step"] = args.selected_step if args.selected_step is not None else args.steps - 1
+    params["verbose"] = args.verbose
+    params["log_every"] = args.log_every
+    params["make_plots"] = not args.no_plots
+    if args.reactivity_schedule is not None:
+        params["reactivity_schedule_pcm"] = args.reactivity_schedule
+    elif args.control_pcm != 0.0:
+        params["reactivity_schedule_pcm"] = [(0.0, 0.0), (args.control_time_s, args.control_pcm)]
+    else:
+        params["reactivity_schedule_pcm"] = [(0.0, 0.0)]
+    return params
+
+
+def main(argv=None):
+    global SIMULATION_RESULTS_DIR
+    args = build_parser().parse_args(argv)
+    SIMULATION_RESULTS_DIR = args.output_dir
+    params = build_parameters_from_args(args)
+    result = run_simulation(params, args.index)
+    last = -1
+    diagnostics = result["system_diagnostics"]
+    summary = {
+        "steps": int(args.steps),
+        "index": int(args.index),
+        "output_dir": str(SIMULATION_RESULTS_DIR),
+        "final_time_s": float(result["time"][last]),
+        "final_phi_mid": float(result["phi_middle"][last, 0]),
+        "final_power_W": float(result["total_power"][last, 0]),
+        "final_inserted_rho_pcm": float(diagnostics["reactivity_inserted_pcm"][last]),
+        "final_feedback_rho_pcm": float(diagnostics["feedback_reactivity_pcm"][last]),
+        "reactivity_schedule_pcm": [(float(t), float(pcm)) for t, pcm in params["reactivity_schedule_pcm"]],
+    }
+    if args.json:
+        print(json.dumps(summary, indent=2, sort_keys=True))
+    else:
+        print(
+            "steps={steps} final_time_s={final_time_s:.6g} phi_mid={final_phi_mid:.6g} "
+            "power={final_power_W:.6g} rho_pcm={final_inserted_rho_pcm:.6g} "
+            "output_dir={output_dir}".format(**summary)
+        )
 
 if __name__ == "__main__":
     main()

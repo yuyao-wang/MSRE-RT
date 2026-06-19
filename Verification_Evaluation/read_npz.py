@@ -1,33 +1,38 @@
+#!/usr/bin/env python3
+
+import argparse
+from pathlib import Path
+
 import numpy as np
-import os
-import sys
 
-def read_npz(file_path):
-    # Load the .npz file with allow_pickle=True
+
+def read_npz(file_path: Path, *, list_only: bool, max_items: int | None) -> None:
     data = np.load(file_path, allow_pickle=True)
-
-    # List all the arrays stored in the .npz file
     print("Available arrays in the .npz file:")
     for key in data.files:
-        print(f"Array name: {key}, Shape: {data[key].shape}")
-        
-        # Print the actual data (or a subset, depending on size)
-        print(data[key])
+        array = data[key]
+        print(f"Array name: {key}, Shape: {array.shape}, Dtype: {array.dtype}")
+        if list_only:
+            continue
+        if max_items is None:
+            print(array)
+        else:
+            flat = array.reshape(-1)
+            print(flat[:max_items])
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Inspect arrays stored in an NPZ file.")
+    parser.add_argument("npz_file", type=Path, help="NPZ file to inspect.")
+    parser.add_argument("--list-only", action="store_true", help="Only print names, shapes, and dtypes.")
+    parser.add_argument("--max-items", type=int, default=None, help="Maximum flattened items to print per array.")
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    read_npz(args.npz_file, list_only=args.list_only, max_items=args.max_items)
+
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python read_npz.py <folder-path> <npz-file-path>")
-    else:
-        folder_path = sys.argv[1]
-        npz_file = sys.argv[2]
-
-        # Change to the specified directory
-        try:
-            os.chdir(folder_path)
-            print(f"Changed directory to {folder_path}")
-        except FileNotFoundError:
-            print(f"Error: The folder '{folder_path}' does not exist.")
-            sys.exit(1)
-        
-        # Now read the .npz file
-        read_npz(npz_file)
+    main()

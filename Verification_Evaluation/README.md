@@ -19,10 +19,24 @@ comparison data, and plots.
 From the repository root:
 
 ```sh
-python3 -m Verification_Evaluation.async_split_prototype --steps 1 --json
-python3 -m Verification_Evaluation.reactivity_sweep --quick
+python3 -m Verification_Evaluation.async_split_prototype --steps 1 --control-pcm -75 --control-time-s 1 --json
+python3 -m Verification_Evaluation.reactivity_sweep --quick --case-pcm 0,-75 --insertion-time-s 1
 python3 -m Verification_Evaluation.generate_evaluation_figures --quick case_00_steady_state_reference
 ```
 
 New generated outputs should go under `Verification_Evaluation/outputs/`, which
 is ignored by Git.
+
+## Interfaces
+
+Each runnable script has a CLI. Use `--help` to see the full input surface.
+
+- `async_split_prototype.py`: `--steps`, `--order`, `--n`, `--outer-dt`,
+  `--control-pcm`, `--control-time-s`.
+- `reactivity_sweep.py`: `--case-pcm`, `--insertion-time-s`, `--end-time-s`,
+  `--baseline-dt-s`, `--n-points`, `--output-dir`.
+- `external_validation.py`: `--nodes`, benchmark values, MSRE loop residence
+  inputs, and `--output-dir`.
+- `get_npz_data.py`: `--simulation-dir`, index range, selected `--step`, and
+  `--output`.
+- `read_npz.py`: input `.npz`, `--list-only`, and `--max-items`.

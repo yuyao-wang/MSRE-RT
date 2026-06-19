@@ -41,12 +41,51 @@ CASE_COLORS = {
     "m2400": "#d62728",
 }
 
+COLOR_PALETTE = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+
 DT_COLORS = {
     0.5: "#1f77b4",
     0.25: "#2ca02c",
     0.125: "#d62728",
     0.0625: "#9467bd",
 }
+
+
+def parse_float_list(text):
+    values = [float(item.strip()) for item in text.split(",") if item.strip()]
+    if not values:
+        raise argparse.ArgumentTypeError("expected at least one comma-separated float")
+    return values
+
+
+def case_id_from_pcm(pcm):
+    if float(pcm) == 0.0:
+        return "zero"
+    prefix = "p" if pcm > 0 else "m"
+    magnitude = abs(float(pcm))
+    text = f"{magnitude:g}".replace(".", "p")
+    return f"{prefix}{text}"
+
+
+def build_case_definitions(pcm_values):
+    values = [float(value) for value in pcm_values]
+    if not any(value == 0.0 for value in values):
+        values.insert(0, 0.0)
+    cases = []
+    for index, pcm in enumerate(values):
+        case_id = case_id_from_pcm(pcm)
+        cases.append({"id": case_id, "label": f"{pcm:g} pcm", "pcm": pcm, "index": 100 + index})
+    return cases
+
+
+def ensure_case_colors(case_definitions):
+    palette_index = 0
+    for case_def in case_definitions:
+        case_id = case_def["id"]
+        if case_id in CASE_COLORS:
+            continue
+        CASE_COLORS[case_id] = COLOR_PALETTE[palette_index % len(COLOR_PALETTE)]
+        palette_index += 1
 
 
 def make_case_params(
@@ -275,7 +314,11 @@ def make_prompt_response_figure(case_results, prompt_metric_rows):
         samples,
         width=width,
         label="Simulated first sample",
-        color=[CASE_COLORS["m075"], CASE_COLORS["m600"], CASE_COLORS["m2400"]],
+        color=[
+            CASE_COLORS[case_result["case"]["id"]]
+            for case_result in case_results.values()
+            if case_result["case"]["id"] != "zero"
+        ],
     )
     for idx, rel_diff in enumerate(rel_diffs):
         y_text = max(estimates[idx], samples[idx]) + 0.035
@@ -335,9 +378,10 @@ def make_appendix_early_window_figure(case_results):
     save_figure(fig, OUTPUT_DIR / "figure_15_early_window_sensitivity")
 
 
-def make_first_sample_convergence_figure(convergence_rows):
+def make_first_sample_convergence_figure(convergence_rows, color=None):
     if plt is None:
         return
+    color = color or CASE_COLORS.get("m075", "#1f77b4")
     apply_publication_style()
     fig, ax = plt.subplots(1, 1, figsize=(8.6, 5.8), constrained_layout=True)
     rows = sorted(convergence_rows, key=lambda row: float(row["outer_dt_s"]))
@@ -346,7 +390,7 @@ def make_first_sample_convergence_figure(convergence_rows):
     ax.plot(
         dts,
         samples,
-        color=CASE_COLORS["m075"],
+        color=color,
         marker="o",
         linewidth=3.0,
     )
@@ -359,18 +403,54 @@ def make_first_sample_convergence_figure(convergence_rows):
     save_figure(fig, OUTPUT_DIR / "figure_16_m075_first_sample_convergence")
 
 
-def run_reactivity_sweep(*, quick=False):
+def run_reactivity_sweep(
+    *,
+    quick=False,
+    output_dir=None,
+    case_definitions=None,
+    insertion_time_s=None,
+    end_time_s=None,
+    baseline_dt_s=None,
+    n_points=None,
+    steady_state_steps=None,
+    steady_state_outer_iterations=None,
+    convergence_dts=None,
+    convergence_end_time_s=None,
+    convergence_pcm=-75.0,
+):
+    global OUTPUT_DIR, INSERTION_TIME_S, END_TIME_S, BASELINE_DT_S
+    global MAIN_ZOOM_START_S, MAIN_ZOOM_END_S, APPENDIX_WINDOW_START_S, APPENDIX_WINDOW_END_S
+    global CONVERGENCE_END_TIME_S, CONVERGENCE_DTS
+
+    OUTPUT_DIR = Path(output_dir) if output_dir is not None else OUTPUT_DIR
+    case_definitions = case_definitions if case_definitions is not None else (CASE_DEFINITIONS[:2] if quick else CASE_DEFINITIONS)
+    ensure_case_colors(case_definitions)
+    INSERTION_TIME_S = float(insertion_time_s) if insertion_time_s is not None else (1.0 if quick else INSERTION_TIME_S)
+    END_TIME_S = float(end_time_s) if end_time_s is not None else (3.0 if quick else END_TIME_S)
+    BASELINE_DT_S = float(baseline_dt_s) if baseline_dt_s is not None else BASELINE_DT_S
+    CONVERGENCE_END_TIME_S = (
+        float(convergence_end_time_s)
+        if convergence_end_time_s is not None
+        else (1.0 if quick else CONVERGENCE_END_TIME_S)
+    )
+    CONVERGENCE_DTS = convergence_dts if convergence_dts is not None else ([0.5, 0.25] if quick else CONVERGENCE_DTS)
+    MAIN_ZOOM_START_S = INSERTION_TIME_S - 0.5
+    MAIN_ZOOM_END_S = INSERTION_TIME_S + 1.0
+    APPENDIX_WINDOW_START_S = INSERTION_TIME_S - 0.5
+    APPENDIX_WINDOW_END_S = INSERTION_TIME_S + 20.0
+
     ensure_dir(OUTPUT_DIR)
     model_main.SIMULATION_RESULTS_DIR = OUTPUT_DIR / "simulation_results"
 
-    case_definitions = CASE_DEFINITIONS if not quick else CASE_DEFINITIONS[:2]
-    convergence_dts = CONVERGENCE_DTS if not quick else [0.5, 0.25]
-    end_time_s = END_TIME_S if not quick else 3.0
-    convergence_end_time_s = CONVERGENCE_END_TIME_S if not quick else 1.0
-    insertion_time_s = INSERTION_TIME_S if not quick else 1.0
-    n_points = 160 if not quick else 20
-    steady_state_steps = 240 if not quick else 1
-    steady_state_outer_iterations = 12 if not quick else 1
+    convergence_dts = CONVERGENCE_DTS
+    end_time_s = END_TIME_S
+    convergence_end_time_s = CONVERGENCE_END_TIME_S
+    insertion_time_s = INSERTION_TIME_S
+    n_points = n_points if n_points is not None else (20 if quick else 160)
+    steady_state_steps = steady_state_steps if steady_state_steps is not None else (1 if quick else 240)
+    steady_state_outer_iterations = (
+        steady_state_outer_iterations if steady_state_outer_iterations is not None else (1 if quick else 12)
+    )
 
     case_results = {}
     for case_def in case_definitions:
@@ -415,7 +495,13 @@ def run_reactivity_sweep(*, quick=False):
     make_prompt_response_figure(case_results, prompt_metric_rows)
     make_appendix_early_window_figure(case_results)
 
-    mild_case = {"id": "m075", "label": "-75 pcm", "pcm": -75.0, "index": 201}
+    mild_case = {
+        "id": case_id_from_pcm(convergence_pcm),
+        "label": f"{convergence_pcm:g} pcm",
+        "pcm": float(convergence_pcm),
+        "index": 201,
+    }
+    ensure_case_colors([mild_case])
     convergence_results = {}
     convergence_rows = []
     for offset, outer_dt in enumerate(convergence_dts):
@@ -424,6 +510,10 @@ def run_reactivity_sweep(*, quick=False):
             outer_dt=outer_dt,
             sim_index=201 + offset,
             end_time_s=convergence_end_time_s,
+            insertion_time_s=insertion_time_s,
+            n_points=n_points,
+            steady_state_steps=steady_state_steps,
+            steady_state_outer_iterations=steady_state_outer_iterations,
         )
         convergence_results[outer_dt] = case_result
         convergence_rows.append(compute_convergence_metrics(case_result))
@@ -440,11 +530,11 @@ def run_reactivity_sweep(*, quick=False):
         list(convergence_rows[0].keys()),
         convergence_rows,
     )
-    make_first_sample_convergence_figure(convergence_rows)
+    make_first_sample_convergence_figure(convergence_rows, color=CASE_COLORS[mild_case["id"]])
 
     metadata = {
         "insertion_time_s": insertion_time_s,
-        "end_time_s": END_TIME_S,
+        "end_time_s": end_time_s,
         "baseline_outer_dt_s": BASELINE_DT_S,
         "main_zoom_start_s": MAIN_ZOOM_START_S,
         "main_zoom_end_s": MAIN_ZOOM_END_S,
@@ -473,8 +563,38 @@ def run_reactivity_sweep(*, quick=False):
 def main():
     parser = argparse.ArgumentParser(description="Generate transient reactivity insertion sweep outputs.")
     parser.add_argument("--quick", action="store_true", help="Run a reduced smoke-test sweep.")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Directory for generated CSV/figure outputs.")
+    parser.add_argument(
+        "--case-pcm",
+        type=parse_float_list,
+        default=None,
+        help="Comma-separated reactivity cases in pcm. Zero is added automatically if omitted.",
+    )
+    parser.add_argument("--insertion-time-s", type=float, default=None, help="Control insertion time in seconds.")
+    parser.add_argument("--end-time-s", type=float, default=None, help="Main sweep end time in seconds.")
+    parser.add_argument("--baseline-dt-s", type=float, default=None, help="Outer dt for main sweep cases.")
+    parser.add_argument("--n-points", type=int, default=None, help="Axial grid points.")
+    parser.add_argument("--steady-state-steps", type=int, default=None, help="Steady-state spinup steps.")
+    parser.add_argument("--steady-state-outer-iterations", type=int, default=None)
+    parser.add_argument("--convergence-dts", type=parse_float_list, default=None, help="Comma-separated dt values.")
+    parser.add_argument("--convergence-end-time-s", type=float, default=None)
+    parser.add_argument("--convergence-pcm", type=float, default=-75.0)
     args = parser.parse_args()
-    run_reactivity_sweep(quick=args.quick)
+    case_definitions = build_case_definitions(args.case_pcm) if args.case_pcm is not None else None
+    run_reactivity_sweep(
+        quick=args.quick,
+        output_dir=args.output_dir,
+        case_definitions=case_definitions,
+        insertion_time_s=args.insertion_time_s,
+        end_time_s=args.end_time_s,
+        baseline_dt_s=args.baseline_dt_s,
+        n_points=args.n_points,
+        steady_state_steps=args.steady_state_steps,
+        steady_state_outer_iterations=args.steady_state_outer_iterations,
+        convergence_dts=args.convergence_dts,
+        convergence_end_time_s=args.convergence_end_time_s,
+        convergence_pcm=args.convergence_pcm,
+    )
 
 
 if __name__ == "__main__":

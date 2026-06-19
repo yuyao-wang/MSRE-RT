@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -1532,8 +1533,25 @@ void InitializeSystemSteadyState(Parameters& params) {
     params.brayton_available_heat_W = params.nominal_total_power;
 }
 
-Parameters GenerateParameters() {
+Parameters GenerateParameters(
+    int n = 80,
+    double outer_dt = 1.0,
+    int steady_state_steps = 180,
+    bool use_steady_state_initialization = true,
+    const std::string& core_inlet_mode = "hx_coupled",
+    double v_core = 20.0
+) {
     Parameters params;
+    params.N = n;
+    params.Nx = n;
+    params.outer_dt = outer_dt;
+    params.ode_horizon = outer_dt;
+    params.steady_state_steps = steady_state_steps;
+    params.use_steady_state_initialization = use_steady_state_initialization;
+    params.core_inlet_mode = core_inlet_mode;
+    params.v_core = v_core;
+    params.u_core = v_core;
+    params.u_precursor = v_core;
     params.z = Linspace(0.0, params.L, params.N);
     params.dz = params.L / static_cast<double>(params.N - 1);
     params.Nx = params.N;
@@ -1867,37 +1885,146 @@ SimulationOutput RunSimulation(Parameters& params, int time_span, const std::fil
 
 }  // namespace msr
 
-int main(int argc, char** argv) {
+namespace {
+
+struct CliOptions {
     int steps = 600;
     std::filesystem::path output_dir = "Verification_Evaluation/cpp_results";
+    int n = 80;
+    double outer_dt = 1.0;
+    int steady_state_steps = 180;
+    bool use_steady_state_initialization = true;
+    std::string core_inlet_mode = "hx_coupled";
+    double v_core = 20.0;
     double insertion_pcm = 0.0;
     double insertion_time_s = 300.0;
-    if (argc >= 2) {
-        steps = std::stoi(argv[1]);
+};
+
+void PrintUsage(const char* program) {
+    std::cout
+        << "Usage: " << program << " [options]\n"
+        << "       " << program << " [steps] [output_dir] [control_pcm] [control_time_s]\n\n"
+        << "Options:\n"
+        << "  --steps N                  Number of outer steps (default: 600)\n"
+        << "  --output-dir PATH          Output directory for CSV files\n"
+        << "  --n N                      Axial grid points (default: 80)\n"
+        << "  --outer-dt SECONDS         Outer-step duration (default: 1.0)\n"
+        << "  --steady-state-steps N     Steady-state spinup steps (default: 180)\n"
+        << "  --no-steady-state          Disable steady-state initialization\n"
+        << "  --core-inlet-mode MODE     hx_coupled or prescribed\n"
+        << "  --v-core VALUE             Core flow velocity in cm/s\n"
+        << "  --control-pcm PCM          Step reactivity insertion in pcm\n"
+        << "  --control-time-s SECONDS   Insertion time in seconds\n"
+        << "  --help                     Show this message\n";
+}
+
+std::string RequireValue(int argc, char** argv, int& idx, const std::string& option) {
+    if (idx + 1 >= argc) {
+        throw std::invalid_argument("Missing value for " + option);
     }
-    if (argc >= 3) {
-        output_dir = argv[2];
-    }
-    if (argc >= 4) {
-        insertion_pcm = std::stod(argv[3]);
-    }
-    if (argc >= 5) {
-        insertion_time_s = std::stod(argv[4]);
+    ++idx;
+    return argv[idx];
+}
+
+CliOptions ParseCli(int argc, char** argv) {
+    CliOptions options;
+    std::vector<std::string> positional;
+    for (int idx = 1; idx < argc; ++idx) {
+        const std::string arg = argv[idx];
+        if (arg == "--help" || arg == "-h") {
+            PrintUsage(argv[0]);
+            std::exit(0);
+        } else if (arg == "--steps") {
+            options.steps = std::stoi(RequireValue(argc, argv, idx, arg));
+        } else if (arg == "--output-dir") {
+            options.output_dir = RequireValue(argc, argv, idx, arg);
+        } else if (arg == "--n") {
+            options.n = std::stoi(RequireValue(argc, argv, idx, arg));
+        } else if (arg == "--outer-dt") {
+            options.outer_dt = std::stod(RequireValue(argc, argv, idx, arg));
+        } else if (arg == "--steady-state-steps") {
+            options.steady_state_steps = std::stoi(RequireValue(argc, argv, idx, arg));
+        } else if (arg == "--no-steady-state") {
+            options.use_steady_state_initialization = false;
+        } else if (arg == "--core-inlet-mode") {
+            options.core_inlet_mode = RequireValue(argc, argv, idx, arg);
+        } else if (arg == "--v-core") {
+            options.v_core = std::stod(RequireValue(argc, argv, idx, arg));
+        } else if (arg == "--control-pcm" || arg == "--insertion-pcm") {
+            options.insertion_pcm = std::stod(RequireValue(argc, argv, idx, arg));
+        } else if (arg == "--control-time-s" || arg == "--insertion-time-s") {
+            options.insertion_time_s = std::stod(RequireValue(argc, argv, idx, arg));
+        } else if (!arg.empty() && arg[0] == '-') {
+            throw std::invalid_argument("Unknown option: " + arg);
+        } else {
+            positional.push_back(arg);
+        }
     }
 
-    auto params = msr::GenerateParameters();
-    params.reactivity_insertion_pcm = insertion_pcm;
-    params.reactivity_insertion_time_s = insertion_time_s;
-    const auto output = msr::RunSimulation(params, steps, output_dir);
-    const std::size_t last = output.time.empty() ? 0 : output.time.size() - 1;
-    std::cout
-        << "steps=" << steps
-        << " final_time_s=" << output.time[last]
-        << " phi_mid=" << output.phi_mid[last]
-        << " rho=" << output.rho[last]
-        << " power=" << output.power[last]
-        << " fuel_mid=" << output.fuel_mid[last]
-        << " graphite_mid=" << output.graphite_mid[last]
-        << '\n';
-    return 0;
+    if (!positional.empty()) {
+        options.steps = std::stoi(positional[0]);
+    }
+    if (positional.size() >= 2) {
+        options.output_dir = positional[1];
+    }
+    if (positional.size() >= 3) {
+        options.insertion_pcm = std::stod(positional[2]);
+    }
+    if (positional.size() >= 4) {
+        options.insertion_time_s = std::stod(positional[3]);
+    }
+    if (positional.size() > 4) {
+        throw std::invalid_argument("Too many positional arguments.");
+    }
+    if (options.steps < 1) {
+        throw std::invalid_argument("--steps must be >= 1.");
+    }
+    if (options.n < 2) {
+        throw std::invalid_argument("--n must be >= 2.");
+    }
+    if (options.outer_dt <= 0.0) {
+        throw std::invalid_argument("--outer-dt must be positive.");
+    }
+    if (options.steady_state_steps < 0) {
+        throw std::invalid_argument("--steady-state-steps must be >= 0.");
+    }
+    if (options.core_inlet_mode != "hx_coupled" && options.core_inlet_mode != "prescribed") {
+        throw std::invalid_argument("--core-inlet-mode must be hx_coupled or prescribed.");
+    }
+    return options;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    try {
+        const auto options = ParseCli(argc, argv);
+        auto params = msr::GenerateParameters(
+            options.n,
+            options.outer_dt,
+            options.steady_state_steps,
+            options.use_steady_state_initialization,
+            options.core_inlet_mode,
+            options.v_core
+        );
+        params.reactivity_insertion_pcm = options.insertion_pcm;
+        params.reactivity_insertion_time_s = options.insertion_time_s;
+        const auto output = msr::RunSimulation(params, options.steps, options.output_dir);
+        const std::size_t last = output.time.empty() ? 0 : output.time.size() - 1;
+        std::cout
+            << "steps=" << options.steps
+            << " final_time_s=" << output.time[last]
+            << " phi_mid=" << output.phi_mid[last]
+            << " rho=" << output.rho[last]
+            << " power=" << output.power[last]
+            << " fuel_mid=" << output.fuel_mid[last]
+            << " graphite_mid=" << output.graphite_mid[last]
+            << " output_dir=" << options.output_dir
+            << '\n';
+        return 0;
+    } catch (const std::exception& error) {
+        std::cerr << "error: " << error.what() << "\n\n";
+        PrintUsage(argv[0]);
+        return 2;
+    }
 }

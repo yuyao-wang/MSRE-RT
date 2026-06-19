@@ -1,124 +1,234 @@
-# MSR1DPython Hardware Conversion
+# MSRE-RT
 
-This repository now carries three forms of the same 1D MSR model:
+MSRE-RT is a reduced real-time emulation workflow for a one-dimensional
+molten-salt reactor model. The repository keeps the numerical reference model,
+same-source C++ solver, Vitis HLS implementation, verification/evaluation
+scripts, and implementation documentation in separate, runnable sections.
 
-- Python reference model in `python/`
-- plain C++ reference solver in `C++/msr_plain.cpp`
-- Vitis HLS kernel-oriented implementation in `Vitis/msr_vitis_kernel.cpp`
-- verification and evaluation scripts/results in `Verification_Evaluation/`
-- design notes and supporting documentation in `documentation/`
+The codebase is organized around one conversion path:
+
+```text
+Python reference model -> plain C++ reference solver -> Vitis HLS split kernels
+```
+
+The hardware path uses a host-controlled split between the reactor core kernel
+and the balance-of-plant (BOP) kernel. The split is made at modeled physical
+transport-delay boundaries, so the host runtime can stage committed delayed
+boundary values before launching the kernels.
 
 ## Repository Layout
 
-- `python/`: source-only Python reference implementation.
-- `C++/`: standalone plain C++ solver plus the shared point-kinetics header.
-- `Vitis/`: HLS kernels, VCU118 host/build scripts, and hardware analysis
-  artifacts.
-- `Verification_Evaluation/`: validation scripts, reusable evaluation helpers,
-  and reference simulation outputs.
-- `documentation/`: implementation notes, support material, and HLS synthesis
-  reports. The copied synthesis reports live in
-  `documentation/synthesis_reports/windows_hls_reports/`.
+- `python/`: executable Python reference model and physics modules.
+- `C++/`: standalone plain C++ solver plus shared point-kinetics logic.
+- `Vitis/`: HLS-oriented kernels, VCU118 host tooling, Vivado/Vitis scripts,
+  and hardware analysis artifacts.
+- `Verification_Evaluation/`: verification scripts, reproducibility helpers,
+  checked reference data, and generated-figure tooling.
+- `documentation/`: design notes, README figures, and HLS synthesis reports.
 
-The conversion goal is not a line-by-line translation. The goal is to preserve the physics step ordering while reshaping the implementation into hardware-schedulable kernels.
+Generated outputs should go under ignored output directories such as
+`Verification_Evaluation/outputs/`, `/tmp/...`, or tool-specific build
+directories. The manuscript workspace `paper_writing/` is intentionally ignored
+and is not part of the public repository.
 
-## Quick Checks
+## Hardware Figures
+
+**Figure 3: Board-level experimental setup for the host-controlled VCU118
+implementation tests.**
+
+![Figure 3: Board-level experimental setup for the host-controlled VCU118 implementation tests.](documentation/readme_assets/figure3_board_setup.png)
+
+**Figure 4: Host-FPGA delayed-coupling scheduling.**
+
+![Figure 4: Host-FPGA delayed-coupling scheduling.](documentation/readme_assets/figure4_host_fpga_delayed_coupling.png)
+
+**Figure 12: HLS schedule diagram for the Nz = 200, s = 1 split design study.**
+
+![Figure 12: HLS schedule diagram for the Nz = 200, s = 1 split design study.](documentation/readme_assets/figure12_hls_schedule_nz200_s1.png)
+
+## Prerequisites
+
+- Python 3 with `numpy`, `scipy`, and `matplotlib` for the reference and
+  verification scripts.
+- A C++17 compiler and CMake for the plain C++ and Vitis syntax/build checks.
+- Xilinx/Vivado/Vitis HLS tools only for FPGA synthesis, bitstream generation,
+  programming, or hardware-manager workflows.
+
+Every runnable Python script exposes its runtime inputs through `argparse`.
+Use `--help` before changing case definitions, control insertions, output
+locations, timing repeats, or hardware paths.
+
+## Quick Start: Python Reference Model
+
+Run a short reference simulation with a configurable reactivity insertion:
+
+```sh
+python3 python/main.py \
+  --steps 2 \
+  --n 20 \
+  --steady-state-steps 1 \
+  --control-pcm -75 \
+  --control-time-s 1 \
+  --output-dir /tmp/msre_python_smoke \
+  --no-plots \
+  --json
+```
+
+Common inputs include `--steps`, `--n`, `--outer-dt`, `--control-pcm`,
+`--control-time-s`, `--reactivity-schedule`, `--core-inlet-mode`, and
+`--output-dir`. Use `--set KEY=VALUE` for scalar parameter overrides that are
+not promoted to dedicated flags.
+
+## Quick Start: Plain C++ Solver
+
+Build and run the same-source C++ reference solver:
+
+```sh
+cmake -S C++ -B /tmp/msre_cpp_build
+cmake --build /tmp/msre_cpp_build
+/tmp/msre_cpp_build/msr_plain \
+  --steps 2 \
+  --n 20 \
+  --steady-state-steps 1 \
+  --control-pcm -75 \
+  --control-time-s 1 \
+  --output-dir /tmp/msre_cpp_smoke
+```
+
+The C++ executable accepts named inputs such as `--steps`, `--n`,
+`--outer-dt`, `--steady-state-steps`, `--core-inlet-mode`, `--v-core`,
+`--control-pcm`, `--control-time-s`, and `--output-dir`. The older positional
+form is still accepted:
+
+```sh
+msr_plain steps output_dir control_pcm control_time_s
+```
+
+## Quick Start: Vitis And VCU118 Code
+
+Run the local CMake syntax/build check for the HLS-oriented source:
+
+```sh
+cmake -S Vitis -B /tmp/msre_vitis_build
+cmake --build /tmp/msre_vitis_build
+```
+
+Inspect user-facing analysis and host-tool interfaces:
+
+```sh
+python3 -m Vitis.analyze_transient_batch_bench --help
+python3 -m Vitis.analyze_fpga_kernel_run --help
+python3 -m Vitis.vcu118.msr_vcu118_host --help
+python3 -m Vitis.vcu118.msr_transient_batch_vcu118_host --help
+```
+
+HLS and Vivado entry points live under `Vitis/hls_modules/` and
+`Vitis/vcu118/`. Example synthesis scripts include:
+
+```sh
+vitis_hls -f Vitis/hls_modules/hls_core_step_n200_s1_10ns_lowlane.tcl
+vitis_hls -f Vitis/hls_modules/hls_bop_step_n200_s1_10ns_lowlane.tcl
+```
+
+Bitstreams, when generated and small enough for GitHub, should be placed under
+`Vitis/bitstreams/`.
+
+## Quick Start: Verification And Evaluation
+
+Run the split-scheduler consistency smoke test:
+
+```sh
+python3 -m Verification_Evaluation.async_split_prototype \
+  --steps 1 \
+  --n 20 \
+  --steady-state-steps 1 \
+  --control-pcm -75 \
+  --control-time-s 0 \
+  --json
+```
+
+Run a reduced reactivity sweep:
+
+```sh
+python3 -m Verification_Evaluation.reactivity_sweep \
+  --quick \
+  --case-pcm 0,-75 \
+  --insertion-time-s 1 \
+  --end-time-s 3 \
+  --n-points 20 \
+  --steady-state-steps 1 \
+  --steady-state-outer-iterations 1 \
+  --output-dir /tmp/msre_reactivity_smoke
+```
+
+Run a small external delayed-neutron circulation validation:
+
+```sh
+python3 -m Verification_Evaluation.external_validation \
+  --nodes 20 \
+  --reported-n 20 \
+  --steady-steps 1 \
+  --skip-present-verification \
+  --output-dir /tmp/msre_external_smoke
+```
+
+Inspect generated NPZ output:
+
+```sh
+python3 -m Verification_Evaluation.read_npz /tmp/msre_python_smoke/specific_data_0.npz --list-only
+python3 -m Verification_Evaluation.get_npz_data \
+  --simulation-dir /tmp/msre_python_smoke \
+  --output /tmp/msre_neutron_flux.csv \
+  --start-index 0 \
+  --end-index 0 \
+  --step 1
+```
+
+## Quick Start: Documentation
+
+HLS synthesis reports copied from the Windows/Vitis runs are tracked under:
+
+```text
+documentation/synthesis_reports/windows_hls_reports/
+```
+
+README figures are tracked under:
+
+```text
+documentation/readme_assets/
+```
+
+Design notes live under `documentation/docs/`. These files are documentation
+artifacts only; running simulations and synthesis flows should write new outputs
+to ignored output directories unless the result is intentionally curated.
+
+## One-Command Sanity Checks
+
+From the repository root:
 
 ```sh
 python3 -m py_compile python/*.py Verification_Evaluation/*.py Vitis/*.py Vitis/vcu118/*.py
 cmake -S C++ -B /tmp/msre_cpp_build && cmake --build /tmp/msre_cpp_build
 cmake -S Vitis -B /tmp/msre_vitis_build && cmake --build /tmp/msre_vitis_build
-python3 -m Verification_Evaluation.async_split_prototype --steps 1 --json
-python3 -m Verification_Evaluation.reactivity_sweep --quick
+python3 -m Verification_Evaluation.async_split_prototype --steps 1 --n 20 --steady-state-steps 1 --json
+python3 -m Verification_Evaluation.reactivity_sweep --quick --case-pcm 0,-75 --insertion-time-s 1 --end-time-s 3 --n-points 20 --steady-state-steps 1 --steady-state-outer-iterations 1 --output-dir /tmp/msre_reactivity_smoke
 ```
 
-## Current Vitis Design
+## Current Hardware Design Notes
 
-The HLS kernel keeps the original high-level order:
+The split design uses two shape-specialized top-level kernels for the
+`Nz = 200, s = 1` hardware study:
 
-1. cross sections
-2. neutronics
-3. thermal hydraulics
-4. HX1
-5. HX2
-6. Brayton and transport-delay bookkeeping
+- `core_step_kernel_n200_s1`
+- `bop_step_kernel_n200_s1`
 
-To make that schedule synthesizable, the top-level AXI structs are copied into local working sets first, then the internal arrays are partitioned and partially unrolled. This avoids illegal `m_axi` disaggregation while still exposing intra-kernel parallelism.
+The measured JTAG-AXI board path launches the kernels sequentially under host
+control and includes launch, wait, boundary staging, and scalar readback
+overhead. The same delayed-boundary protocol also supports the host-mediated
+dual-FPGA implementation: the core and BOP kernels can be placed on separate
+VCU118 devices, and the host runtime manages physical-delay boundary channels
+without direct board-to-board communication.
 
-Current lane factors in `Vitis/msr_vitis_kernel.cpp`:
-
-- cross sections: `4`
-- neutronics: `4`
-- thermal: `4`
-- heat exchanger: `4`
-
-These are now compile-time tunables, so exploratory HLS runs can lower lane factors through `add_files ... -cflags {-D...}` without forking the kernel source. The `10 ns` low-lane experiment sets all four lane factors to `2`.
-
-The version-controlled HLS script for the next exploratory run is `Vitis/hls_synth_10ns.tcl`, which sets the clock target to `10 ns` (`100 MHz`). The current `5 ns` target is still treated as a stretch goal, not the default turnaround configuration.
-
-## Module HLS Benchmarks
-
-The repository now also carries a module-level HLS benchmark source in `Vitis/msr_vitis_module_tops.cpp`.
-
-Those tops are intentionally separate from `msr_step_kernel`:
-
-- `msr_cross_sections_bench`
-- `msr_neutronics_bench`
-- `msr_thermal_bench`
-- `msr_hx1_bench`
-- `msr_hx2_bench`
-- `msr_power_reduction_bench`
-
-Their purpose is fast iterative synthesis for module-level timing and resource calibration. Each top isolates one compute block while keeping the same inner implementation used by the monolithic step kernel.
-
-The corresponding TCL entry points live under `Vitis/hls_modules/` and write into `Vitis/hls_module_work/`, so they do not collide with the existing monolithic `Vitis/hls_work/` runs. That separation is deliberate: module experiments can be launched, deleted, and compared without perturbing the long-running full-step synthesis jobs.
-
-Recommended use:
-
-- start with `hls_neutronics_10ns.tcl`, because neutronics is still the dominant critical-path candidate
-- use `hls_cross_sections_10ns.tcl` and `hls_power_reduction_10ns.tcl` to iterate on reduction and feedback logic quickly
-- treat `hls_hx1_10ns.tcl` and `hls_hx2_10ns.tcl` as duplicated transport kernels whose reports should stay close
-- only return to the full `msr_step_kernel` synthesis after a module-level change has already shown an acceptable latency / resource tradeoff
-
-## Reduction Design
-
-The two timing-sensitive reductions are:
-
-- `estimate_global_rho`, which integrates production and absorption terms
-- diagnostic `power`, which integrates `q_prime`
-
-Both now use the same sliding-window trapezoid reduction path:
-
-1. stream through `x[:]` and `y[:]` once
-2. reuse the previous sample as a register-held window
-3. accumulate each trapezoid contribution into one of `8` rotating partial accumulators
-4. tree-reduce the partial accumulators into the final scalar
-
-This replaces both the original scalar recurrence and the later wide blocked-read version. In HLS terms, the new structure reduces read pressure on the source arrays while still shortening the accumulation dependency chain.
-
-The design intent is:
-
-- sliding-window reads to cut the number of array loads per iteration
-- rotating partial sums to limit serial accumulation depth
-- tree reduction to shorten the final adder chain
-- shared reduction logic so `power` and `rho` do not diverge structurally
-
-## Parallelization Notes
-
-The current HLS structure exploits parallelism in three layers:
-
-- unroll tiny dimensions fully or nearly fully: energy groups and precursor groups
-- partially unroll spatial sweeps: neutronics, thermal, HX
-- pipeline regular stencil and sweep loops with `II=1` targets
-
-The main same-step synchronization boundaries remain:
-
-- `q_prime[:]` between neutronics and thermal
-- `fuel[:]` / `graphite[:]` feedback into the next neutronics update
-- `Ts_core_L`, `Tss_HX1_L`, `Tsss_HX2_L` across thermal and HX stages
-- precursor outlet history and delay-line writeback across steps
-
-That means most coarse physics kernels remain serial inside one outer step, while the main latency reduction path combines aggressive intra-kernel parallelism with host-intermediated task-level overlap across physical delay boundaries.
-
-For the longer design discussion, see `documentation/docs/cpp_vitis_conversion.md`.
-For the staged precision roadmap, see `documentation/docs/mixed_precision_plan.md`.
+The per-kernel HLS reports are stored in `documentation/synthesis_reports/`.
+They include `csynth` reports, schedule XML, design XML, schedule diagrams, and
+the extracted N80 XML bundle.

@@ -17,8 +17,21 @@ From the repository root:
 ```sh
 cmake -S C++ -B /tmp/msre_cpp_build
 cmake --build /tmp/msre_cpp_build
-/tmp/msre_cpp_build/msr_plain 2 /tmp/msre_cpp_smoke
+/tmp/msre_cpp_build/msr_plain --steps 2 --output-dir /tmp/msre_cpp_smoke
 ```
 
-The executable arguments are `steps`, `output_dir`, `insertion_pcm`, and
-`insertion_time_s`.
+The executable exposes the main runtime inputs as named arguments:
+
+```sh
+/tmp/msre_cpp_build/msr_plain \
+  --steps 600 \
+  --n 80 \
+  --outer-dt 1.0 \
+  --control-pcm -75 \
+  --control-time-s 300 \
+  --core-inlet-mode hx_coupled \
+  --output-dir Verification_Evaluation/outputs/cpp_run
+```
+
+The old positional form is still accepted for compatibility:
+`msr_plain steps output_dir control_pcm control_time_s`.

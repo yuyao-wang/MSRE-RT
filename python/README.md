@@ -20,9 +20,26 @@ reduced MSRE model.
 From the repository root:
 
 ```sh
-python3 python/main.py
+python3 python/main.py --steps 2 --output-dir /tmp/msre_python_smoke --no-plots
 ```
 
 Simulation outputs are written under
 `Verification_Evaluation/simulation_results/` so the Python code directory
 stays source-only.
+
+Common runtime inputs are exposed as arguments:
+
+```sh
+python3 python/main.py \
+  --steps 600 \
+  --n 80 \
+  --outer-dt 1.0 \
+  --control-pcm -75 \
+  --control-time-s 300 \
+  --core-inlet-mode hx_coupled \
+  --output-dir Verification_Evaluation/outputs/python_run
+```
+
+Use `--reactivity-schedule '0:0,300:-75,360:0'` for multi-event control
+histories. Use `--set KEY=VALUE` for scalar parameter overrides that are not
+promoted to dedicated flags.
