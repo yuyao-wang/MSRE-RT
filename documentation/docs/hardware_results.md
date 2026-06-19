@@ -8,7 +8,7 @@ artifacts.
 
 | Item | Result |
 | --- | --- |
-| Hardware platform | Host-mediated VCU118 / dual-VCU118 workflow |
+| Hardware platform | Host-mediated VCU118 / dual-FPGA-ready split-kernel workflow |
 | Core kernel | `core_step_kernel_n200_s1`, 13,723..13,783 cycles in `fpga_compare_20260617` |
 | BOP kernel | `bop_step_kernel_n200_s1`, 2,334 cycles in `fpga_compare_20260617` |
 | HLS-only sequential step estimate | 321.74 us |

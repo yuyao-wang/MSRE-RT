@@ -2,8 +2,8 @@
 
 A reproducible real-time digital-twin workflow for a 1-D flowing-fuel
 Molten-Salt Reactor Experiment model, spanning Python reference simulation,
-same-source C++ verification, and host-mediated Vivado/Vitis HLS dual-FPGA
-emulation.
+same-source C++ verification, and a host-mediated Vivado/Vitis HLS
+split-kernel workflow for VCU118 and dual-FPGA-ready deployment.
 
 [![Python >=3.10](https://img.shields.io/badge/python-%3E%3D3.10-3776AB.svg)](requirements.txt)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg)](C++/CMakeLists.txt)
@@ -29,7 +29,7 @@ emulation.
 
 | Item | Result |
 | --- | --- |
-| Hardware platform | Host-mediated dual-VCU118 design; current board validation through VCU118 JTAG-AXI runtime |
+| Hardware platform | Host-mediated VCU118 / dual-FPGA-ready split-kernel workflow; current board validation through VCU118 JTAG-AXI runtime |
 | Core kernel | `core_step_kernel_n200_s1`, 13,723..13,783 cycles in the aggressive HLS comparison artifact |
 | BOP kernel | `bop_step_kernel_n200_s1`, 2,334 cycles in the aggressive HLS comparison artifact |
 | Step latency | 321.74 us HLS-only sequential core+BOP estimate; 3,043 us measured current board wait path |
@@ -181,7 +181,7 @@ Detailed documentation is organized under [`documentation/`](documentation/):
 - [`fpga_hls_design.md`](documentation/docs/fpga_hls_design.md): HLS split
   kernels and synthesis reports.
 - [`host_runtime.md`](documentation/docs/host_runtime.md): host-mediated
-  runtime and dual-FPGA protocol.
+  runtime and dual-FPGA-ready protocol.
 - [`verification.md`](documentation/docs/verification.md): numerical
   verification entry points.
 - [`hardware_results.md`](documentation/docs/hardware_results.md): hardware and

@@ -15,12 +15,14 @@ CPU host -> hw_server / Vivado Hardware Manager -> JTAG-AXI -> AXI control and B
 This path is useful for deterministic board validation and readback comparison.
 It is not presented as the final high-throughput production transport.
 
-## Dual-FPGA Protocol
+## Dual-FPGA-Ready Protocol
 
-The split design can place the reactor core and BOP kernels on separate VCU118
-devices. The host maintains the delayed boundary channels and launches each
-kernel with committed values from the proper model step. No direct
-board-to-board transport is required for the checked protocol.
+The split design is structured so the reactor core and BOP kernels can be
+placed on separate VCU118 devices. The currently reported board measurements are
+from the host-mediated VCU118 JTAG-AXI validation path, while the same host
+protocol maintains the delayed boundary channels needed for dual-FPGA
+deployment. No direct board-to-board transport is required for the checked
+protocol.
 
 ## Host Tools
 

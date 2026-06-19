@@ -12,7 +12,7 @@ hardware evidence live here.
 | [`docs/numerical_reference.md`](docs/numerical_reference.md) | Python reference simulation and runtime inputs |
 | [`docs/cpp_solver.md`](docs/cpp_solver.md) | Plain C++ solver and same-source verification role |
 | [`docs/fpga_hls_design.md`](docs/fpga_hls_design.md) | HLS kernel split, synthesis scripts, and report locations |
-| [`docs/host_runtime.md`](docs/host_runtime.md) | Host-mediated board runtime and dual-FPGA protocol |
+| [`docs/host_runtime.md`](docs/host_runtime.md) | Host-mediated board runtime and dual-FPGA-ready protocol |
 | [`docs/verification.md`](docs/verification.md) | Verification scripts, smoke runs, and checked result artifacts |
 | [`docs/hardware_results.md`](docs/hardware_results.md) | Hardware timing, resource, and board-readback summaries |
 | [`docs/reproducibility.md`](docs/reproducibility.md) | Artifact reproducibility levels and command sequences |
