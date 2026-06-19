@@ -2,7 +2,7 @@
 
 This file records the release process for research-artifact snapshots.
 
-## v0.1.0 Artifact Release
+## v0.1.x Artifact Release
 
 Before publishing a GitHub release:
 
@@ -11,7 +11,7 @@ Before publishing a GitHub release:
   current.
 - Confirm checked hardware-result tables and synthesis reports are the intended
   public artifacts.
-- Create an annotated tag, for example `v0.1.0`.
+- Create an annotated tag, for example `v0.1.1`.
 - Publish the GitHub release with the changelog summary and attach any
   intentionally archived artifacts.
 - Add DOI/Zenodo metadata only after the archived release exists.

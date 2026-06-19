@@ -8,7 +8,7 @@ authors:
     alias: "Yuyao (Phoebe)"
 repository-code: "https://github.com/yuyao-wang/MSRE-RT"
 url: "https://github.com/yuyao-wang/MSRE-RT"
-version: "0.1.0"
+version: "0.1.1"
 license: MIT
 abstract: "A reproducible workflow for Python reference simulation, same-source C++ verification, and host-mediated Vivado/Vitis HLS emulation of a 1-D flowing-fuel MSRE model."
 keywords:

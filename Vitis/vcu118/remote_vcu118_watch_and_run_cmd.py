@@ -43,7 +43,8 @@ def ssh_cmd(expect_path: Path, remote_cmd: str, allow_nonzero: bool = False) -> 
 
 def scp_from(expect_path: Path, remote_host: str, remote_path: str, local_path: Path) -> None:
     local_path.parent.mkdir(parents=True, exist_ok=True)
-    result = run_command(["expect", str(expect_path), f"{remote_host}:{remote_path.replace('\\', '/')}", str(local_path)])
+    remote_posix_path = remote_path.replace("\\", "/")
+    result = run_command(["expect", str(expect_path), f"{remote_host}:{remote_posix_path}", str(local_path)])
     output = clean_expect_output(result.stdout)
     if result.returncode != 0:
         raise RuntimeError(f"scp failed with exit code {result.returncode}\n{output}\n{result.stderr.strip()}")
