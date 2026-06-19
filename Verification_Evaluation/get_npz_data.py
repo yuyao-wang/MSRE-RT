@@ -1,10 +1,10 @@
-import os
 import csv
+from pathlib import Path
+
 import numpy as np
 
-# Path to simulation result files
-simulation_dir = "/Users/ouuyou/Project/Projects_development/MSR/ABasicPythonVersionUseSolver/simulation_results"
-output_csv = "neutron_flux_results.csv"
+simulation_dir = Path(__file__).resolve().parent / "simulation_results"
+output_csv = Path(__file__).resolve().parent / "neutron_flux_results.csv"
 
 # Create or overwrite the CSV file and write headers
 with open(output_csv, mode="w", newline="") as csv_file:
@@ -14,9 +14,9 @@ with open(output_csv, mode="w", newline="") as csv_file:
     # Loop through files 0-624 and extract data from npz files
     for i in range(30):
         filename = f"specific_data_{i}.npz"
-        filepath = os.path.join(simulation_dir, filename)
+        filepath = simulation_dir / filename
 
-        if os.path.exists(filepath):
+        if filepath.exists():
             # Load the npz file
             data = np.load(filepath, allow_pickle=True)
             

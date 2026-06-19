@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from collections import deque
+from pathlib import Path
 
 try:
     import matplotlib.pyplot as plt
@@ -16,6 +17,10 @@ from transport_delay import transport_delay
 from power_plant import power_plant_temp
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SIMULATION_RESULTS_DIR = REPO_ROOT / "Verification_Evaluation" / "simulation_results"
+
+
 def external_reactivity_from_schedule(params, time_s):
     schedule = params.get('reactivity_schedule_pcm', [(0.0, 0.0)])
     current_pcm = float(schedule[0][1])
@@ -28,14 +33,14 @@ def external_reactivity_from_schedule(params, time_s):
 
 
 def save_ci_groups_csv(selected_step, ci_groups_at_step, params, index):
-    os.makedirs('simulation_results', exist_ok=True)
+    SIMULATION_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     dt = params.get('dt', 1.0)
     time_value = selected_step * dt
     n_points = ci_groups_at_step.shape[1]
     z = np.linspace(0.0, params['L'], n_points)
 
-    csv_path = f'simulation_results/ci_groups_step_{selected_step}_sim_{index}.csv'
+    csv_path = SIMULATION_RESULTS_DIR / f'ci_groups_step_{selected_step}_sim_{index}.csv'
     header = 'simulation_index,step,time,point_index,z,C1,C2,C3,C4,C5,C6'
 
     rows = np.zeros((n_points, 11), dtype=float)
@@ -362,9 +367,9 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     if plt is None:
         return
 
-    os.makedirs('simulation_results', exist_ok=True)
-    plot_dir = f'simulation_results/plots_{index}'
-    os.makedirs(plot_dir, exist_ok=True)
+    SIMULATION_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    plot_dir = SIMULATION_RESULTS_DIR / f'plots_{index}'
+    plot_dir.mkdir(parents=True, exist_ok=True)
 
     # First plot: Neutron flux and delayed neutron precursors
     fig, ax = plt.subplots(2, 2, figsize=(14, 6))
@@ -386,7 +391,7 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     ax[1, 1].set_title('Temperature in the core')
 
     plt.tight_layout()
-    plt.savefig(f'{plot_dir}/neutron_flux_and_precursors.png')
+    plt.savefig(plot_dir / 'neutron_flux_and_precursors.png')
     plt.close(fig)
 
     # Second plot: Temperature in the heat exchangers
@@ -408,7 +413,7 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     ax[1, 1].set_title('Temperature in the core with time in the middle')
 
     plt.tight_layout()
-    plt.savefig(f'{plot_dir}/temperature_in_heat_exchangers.png')
+    plt.savefig(plot_dir / 'temperature_in_heat_exchangers.png')
     plt.close(fig)
 
     # Third plot: Delayed Neutron Precursors with time in the middle
@@ -419,7 +424,7 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     ax.set_title('Delayed Neutron Precursors with time in the middle')
 
     plt.tight_layout()
-    plt.savefig(f'{plot_dir}/precursors_with_time_middle.png')
+    plt.savefig(plot_dir / 'precursors_with_time_middle.png')
     plt.close(fig)
 
     # Fourth plot: Reactivity and neutron flux change
@@ -434,7 +439,7 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     ax[1, 0].set_title('Neutron flux_dt * 100')
 
     plt.tight_layout()
-    plt.savefig(f'{plot_dir}/rho_dt.png')
+    plt.savefig(plot_dir / 'rho_dt.png')
     plt.close(fig)
 
     fig, ax = plt.subplots(2, 2, figsize=(15, 8))
@@ -464,7 +469,7 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     ax[1, 1].set_title('Core Midplane Response')
 
     plt.tight_layout()
-    plt.savefig(f'{plot_dir}/system_loop_response.png')
+    plt.savefig(plot_dir / 'system_loop_response.png')
     plt.close(fig)
 
     fig, ax = plt.subplots(2, 2, figsize=(15, 8))
@@ -493,18 +498,18 @@ def plot_results(z, phi, ci, rho, rho_matrix, temperature_fuel, temperature_grap
     ax[1, 1].set_title('Brayton Heat Balance')
 
     plt.tight_layout()
-    plt.savefig(f'{plot_dir}/brayton_diagnostics.png')
+    plt.savefig(plot_dir / 'brayton_diagnostics.png')
     plt.close(fig)
 
 def save_specific_data(data, index):
     print(f'Saving specific data for simulation {index}')
-    os.makedirs('simulation_results', exist_ok=True)
-    data_file = f'simulation_results/specific_data_{index}.npz'
+    SIMULATION_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    data_file = SIMULATION_RESULTS_DIR / f'specific_data_{index}.npz'
     np.savez(data_file, data=data)
 
 def save_system_diagnostics(system_diagnostics, index):
-    os.makedirs('simulation_results', exist_ok=True)
-    np.savez(f'simulation_results/system_diagnostics_{index}.npz', **system_diagnostics)
+    SIMULATION_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    np.savez(SIMULATION_RESULTS_DIR / f'system_diagnostics_{index}.npz', **system_diagnostics)
 
 def main():
     run_simulation(generate_parameters(), 0)

@@ -7,14 +7,17 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+PYTHON_DIR = REPO_ROOT / "python"
 
 import sys
 
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+for path in (PYTHON_DIR, REPO_ROOT):
+    text = str(path)
+    if text not in sys.path:
+        sys.path.insert(0, text)
 
 from parameters import generate_parameters
-from vitis.vcu118 import msr_vcu118_host
+from Vitis.vcu118 import msr_vcu118_host
 
 
 K_MAX_N = msr_vcu118_host.K_MAX_N

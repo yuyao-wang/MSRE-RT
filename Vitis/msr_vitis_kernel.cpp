@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include "../point_kinetics_shared.hpp"
+#include "../C++/point_kinetics_shared.hpp"
 
 namespace msr_vitis {
 

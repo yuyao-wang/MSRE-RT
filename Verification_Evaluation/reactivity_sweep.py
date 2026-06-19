@@ -5,12 +5,13 @@ from pathlib import Path
 
 import numpy as np
 
+import path_setup  # noqa: F401
 from main import run_simulation
 from parameters import generate_parameters
-from paper_utils import apply_publication_style, ensure_dir, save_figure, write_csv, write_json, plt
+from verification_utils import apply_publication_style, ensure_dir, save_figure, write_csv, write_json, plt
 
 
-OUTPUT_DIR = Path("paper_outputs/case_10_transient_application_corrected")
+OUTPUT_DIR = Path("Verification_Evaluation/outputs/case_10_transient_application_corrected")
 INSERTION_TIME_S = 300.0
 END_TIME_S = 600.0
 TIME_SPAN = END_TIME_S

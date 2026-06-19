@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include "../point_kinetics_shared.hpp"
+#include "point_kinetics_shared.hpp"
 
 namespace msr {
 
@@ -1869,7 +1869,7 @@ SimulationOutput RunSimulation(Parameters& params, int time_span, const std::fil
 
 int main(int argc, char** argv) {
     int steps = 600;
-    std::filesystem::path output_dir = "cpp/results";
+    std::filesystem::path output_dir = "Verification_Evaluation/cpp_results";
     double insertion_pcm = 0.0;
     double insertion_time_s = 300.0;
     if (argc >= 2) {

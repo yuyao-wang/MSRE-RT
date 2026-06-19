@@ -868,8 +868,11 @@ def prepare_offline_snapshot(args: argparse.Namespace) -> None:
     import sys
 
     repo_root = Path(__file__).resolve().parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
+    python_dir = repo_root / "python"
+    for path in (python_dir, repo_root):
+        text = str(path)
+        if text not in sys.path:
+            sys.path.insert(0, text)
     from parameters import generate_parameters
 
     out_dir = Path(args.out_dir).resolve()

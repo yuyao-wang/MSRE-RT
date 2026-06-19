@@ -11,5 +11,6 @@
 # source ~/miniconda3/etc/profile.d/conda.sh
 # conda activate compatible_env
 
-# Run the Python script
+# Run the Python reference model
+cd "$(dirname "$0")"
 python main.py

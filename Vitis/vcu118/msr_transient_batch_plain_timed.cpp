@@ -15,7 +15,7 @@
 #include <vector>
 
 #define main msr_plain_embedded_main
-#include "../../cpp/msr_plain.cpp"
+#include "../../C++/msr_plain.cpp"
 #undef main
 
 #include "../msr_vitis_kernel.cpp"

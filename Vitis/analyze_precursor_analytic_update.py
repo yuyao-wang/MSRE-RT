@@ -11,13 +11,17 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+PYTHON_DIR = REPO_ROOT / "python"
+VERIFICATION_DIR = REPO_ROOT / "Verification_Evaluation"
+for path in (PYTHON_DIR, VERIFICATION_DIR, REPO_ROOT):
+    text = str(path)
+    if text not in sys.path:
+        sys.path.insert(0, text)
 
 from parameters import generate_parameters
-from paper_physics import run_coupled_transient
-from vitis.analyze_fpga_kernel_run import parse_csynth_summary
-from vitis.vcu118 import msr_vcu118_host
+from verification_physics import run_coupled_transient
+from Vitis.analyze_fpga_kernel_run import parse_csynth_summary
+from Vitis.vcu118 import msr_vcu118_host
 
 
 METRICS = [

@@ -7,11 +7,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
+import path_setup  # noqa: F401
 from HX1 import HX1
 from HX2 import HX2
 from cross_sections import build_cross_sections
 from neutronics import _extract_state, neutronics
-from paper_physics import (
+from verification_physics import (
     build_event_state,
     compute_reactivity_from_xs,
     make_reference_k,

@@ -8,24 +8,30 @@ __pycache__/
 .vendor/
 tmp/
 
-cpp/build/
-cpp/results_50/
-cpp/results_smoke/
-vitis/build/
-vitis/hls_work/
-vitis/hls_module_work/
+C++/build/
+C++/results/
+C++/results_50/
+C++/results_smoke/
+Vitis/build/
+Vitis/hls_work/
+Vitis/hls_module_work/
+Vitis/analysis_artifacts/*/msr_*_timed
 
 paper_writing/
 paper_outputs/
+Verification_Evaluation/outputs/
+Verification_Evaluation/cpp_results/
+Verification_Evaluation/.cache/
+Verification_Evaluation/.mplconfig/
 manuscript_figures_status.md
 paper_figures.py
 paper_physics.py
 paper_utils.py
 
-tex_note/*.aux
-tex_note/*.log
-tex_note/*.out
-tex_note/*.fdb_latexmk
-tex_note/*.fls
-tex_note/*.synctex.gz
-tex_note/*.pdf
+documentation/tex_note/*.aux
+documentation/tex_note/*.log
+documentation/tex_note/*.out
+documentation/tex_note/*.fdb_latexmk
+documentation/tex_note/*.fls
+documentation/tex_note/*.synctex.gz
+documentation/tex_note/*.pdf

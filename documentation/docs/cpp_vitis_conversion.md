@@ -2,13 +2,13 @@
 
 ## Deliverables
 
-- Plain C++ reference solver: [`cpp/msr_plain.cpp`](../cpp/msr_plain.cpp)
-- Plain C++ build file: [`cpp/CMakeLists.txt`](../cpp/CMakeLists.txt)
-- Vitis HLS kernel-oriented implementation: [`vitis/msr_vitis_kernel.cpp`](../vitis/msr_vitis_kernel.cpp)
-- Vitis syntax-check build file: [`vitis/CMakeLists.txt`](../vitis/CMakeLists.txt)
-- Experimental full-transient batch top: `msr_transient_batch_kernel()` inside [`vitis/msr_vitis_kernel.cpp`](../vitis/msr_vitis_kernel.cpp)
-- Same-init plain C++ transient control runner: [`vitis/vcu118/msr_transient_batch_plain_timed.cpp`](../vitis/vcu118/msr_transient_batch_plain_timed.cpp)
-- Resident transient benchmark script: [`vitis/analyze_transient_batch_bench.py`](../vitis/analyze_transient_batch_bench.py)
+- Plain C++ reference solver: [`C++/msr_plain.cpp`](../../C++/msr_plain.cpp)
+- Plain C++ build file: [`C++/CMakeLists.txt`](../../C++/CMakeLists.txt)
+- Vitis HLS kernel-oriented implementation: [`Vitis/msr_vitis_kernel.cpp`](../../Vitis/msr_vitis_kernel.cpp)
+- Vitis syntax-check build file: [`Vitis/CMakeLists.txt`](../../Vitis/CMakeLists.txt)
+- Experimental full-transient batch top: `msr_transient_batch_kernel()` inside [`Vitis/msr_vitis_kernel.cpp`](../../Vitis/msr_vitis_kernel.cpp)
+- Same-init plain C++ transient control runner: [`Vitis/vcu118/msr_transient_batch_plain_timed.cpp`](../../Vitis/vcu118/msr_transient_batch_plain_timed.cpp)
+- Resident transient benchmark script: [`Vitis/analyze_transient_batch_bench.py`](../../Vitis/analyze_transient_batch_bench.py)
 
 The C++ code keeps the Python step ordering and the same physics decomposition:
 
@@ -365,7 +365,7 @@ Only final diagnostics and final state are written back. That keeps host traffic
 - case management
 - scenario / event injection
 
-If a single-kernel HLS implementation is preferred first, keep the exact top-level order already used in [`vitis/msr_vitis_kernel.cpp`](../vitis/msr_vitis_kernel.cpp), then split into two kernels only after profiling.
+If a single-kernel HLS implementation is preferred first, keep the exact top-level order already used in [`Vitis/msr_vitis_kernel.cpp`](../../Vitis/msr_vitis_kernel.cpp), then split into two kernels only after profiling.
 
 ## Current Implementation Status
 
@@ -408,7 +408,7 @@ Interpretation:
 - but a direct HLS translation explodes floating-point operator replication and destroys timing closure
 - this reinforces the need for the architecture change already outlined in this note: resident multi-step execution, mixed precision, and shared/time-multiplexed floating-point resources instead of a naive full-unroll mapping
 
-Artifacts for the article are under `vitis/analysis_artifacts/precursor_analytic_update_20260618_interleaved/`.
+Artifacts for the article are under `Vitis/analysis_artifacts/precursor_analytic_update_20260618_interleaved/`.
 
 ## Deterministic Timing Notes
 
