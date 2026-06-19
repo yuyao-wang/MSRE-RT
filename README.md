@@ -5,9 +5,12 @@ Experiment, integrating flowing-fuel reactor dynamics, delayed
 core–balance-of-plant coupling, and FPGA-oriented host-mediated emulation for
 faster-than-real-time transient studies.
 
-[![Platform: VCU118](https://img.shields.io/badge/platform-VCU118-0B7285.svg)](Vitis/vcu118/README.md)
 [![Smoke tests](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml/badge.svg)](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![Artifact](https://img.shields.io/badge/artifact-reproducible-2E7D32.svg)](documentation/docs/reproducibility.md)
+[![Platform](https://img.shields.io/badge/platform-VCU118-0B7285.svg)](Vitis/vcu118/README.md)
+[![Runtime](https://img.shields.io/badge/runtime-faster--than--real--time-6A1B9A.svg)](Vitis/analysis_artifacts/fpga_compare_20260617/report.md)
+[![Digital Twin](https://img.shields.io/badge/digital--twin-MSRE--RT-1F4E79.svg)](README.md)
 
 ## System Contribution
 
