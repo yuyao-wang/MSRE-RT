@@ -1,0 +1,2 @@
+# Keep exploratory/reporting notebooks from dominating GitHub language stats.
+*.ipynb linguist-vendored

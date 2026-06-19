@@ -1,72 +1,88 @@
 # MSRE-RT
 
-MSRE-RT is a reduced real-time emulation workflow for a one-dimensional
-molten-salt reactor model. The repository keeps the numerical reference model,
-same-source C++ solver, Vitis HLS implementation, verification/evaluation
-scripts, and implementation documentation in separate, runnable sections.
+A reproducible real-time digital-twin workflow for a 1-D flowing-fuel
+Molten-Salt Reactor Experiment model, spanning Python reference simulation,
+same-source C++ verification, and host-mediated Vivado/Vitis HLS dual-FPGA
+emulation.
 
-The codebase is organized around one conversion path:
+[![Python >=3.10](https://img.shields.io/badge/python-%3E%3D3.10-3776AB.svg)](requirements.txt)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg)](C++/CMakeLists.txt)
+[![Vivado/Vitis HLS](https://img.shields.io/badge/HLS-Vivado%2FVitis-8A2BE2.svg)](Vitis/README.md)
+[![Platform: VCU118](https://img.shields.io/badge/platform-VCU118-0B7285.svg)](Vitis/vcu118/README.md)
+[![Smoke tests](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml/badge.svg)](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-```text
-Python reference model -> plain C++ reference solver -> Vitis HLS split kernels
+![System overview](documentation/readme_assets/overview.png)
+
+## Highlights
+
+- End-to-end path: Python reference model -> same-source C++ -> HLS kernels.
+- Host-mediated split between reactor-core and balance-of-plant kernels at
+  modeled transport-delay boundaries.
+- Verification scripts for numerical consistency, delayed-neutron circulation,
+  and transient evaluation.
+- Hardware-oriented implementation for VCU118 and Vivado/Vitis HLS experiments,
+  including board setup photos, host tools, synthesis reports, and checked
+  analysis artifacts.
+
+## Key Results
+
+| Item | Result |
+| --- | --- |
+| Hardware platform | Host-mediated dual-VCU118 design; current board validation through VCU118 JTAG-AXI runtime |
+| Core kernel | `core_step_kernel_n200_s1`, 13,723..13,783 cycles in the aggressive HLS comparison artifact |
+| BOP kernel | `bop_step_kernel_n200_s1`, 2,334 cycles in the aggressive HLS comparison artifact |
+| Step latency | 321.74 us HLS-only sequential core+BOP estimate; 3,043 us measured current board wait path |
+| Faster-than-real-time factor | 3.1e3x HLS-only and 329x current board wait path for a 1 s model step |
+| Python reference comparison | HLS-only path is 57.0x faster than the Python one-step reference; current board wait path is 6.03x faster |
+| Board readback consistency | VCU118 snapshot readback matches the same-source CPU kernel for the reported core/BOP boundary metrics |
+
+The front-page latency numbers come from
+[`Vitis/analysis_artifacts/fpga_compare_20260617/report.md`](Vitis/analysis_artifacts/fpga_compare_20260617/report.md).
+Tracked synthesis reports under `documentation/synthesis_reports/` preserve the
+corresponding Vivado HLS report artifacts used for hardware discussion.
+
+## What You Can Reproduce
+
+The repository supports three reproducibility levels:
+
+1. **Software smoke test:** Python import/runtime checks plus C++ and Vitis
+   syntax/build checks.
+2. **Numerical verification:** transient comparison, split-scheduler
+   consistency, and delayed-neutron circulation checks.
+3. **Hardware-oriented flow:** Vivado/Vitis HLS scripts, VCU118 host-side
+   tooling, and checked board-run analysis artifacts.
+
+Start with the one-command smoke script:
+
+```sh
+bash scripts/run_smoke_tests.sh
 ```
-
-The hardware path uses a host-controlled split between the reactor core kernel
-and the balance-of-plant (BOP) kernel. The split is made at modeled physical
-transport-delay boundaries, so the host runtime can stage committed delayed
-boundary values before launching the kernels.
 
 ## Repository Layout
 
-- `python/`: executable Python reference model and physics modules.
-- `C++/`: standalone plain C++ solver plus shared point-kinetics logic.
-- `Vitis/`: HLS-oriented kernels, VCU118 host tooling, Vivado/Vitis scripts,
-  and hardware analysis artifacts.
-- `Verification_Evaluation/`: verification scripts, reproducibility helpers,
-  checked reference data, and generated-figure tooling.
-- `documentation/`: design notes, README figures, and HLS synthesis reports.
+| Path | Purpose |
+| --- | --- |
+| `python/` | Executable Python reference model and physics modules |
+| `C++/` | Standalone plain C++ solver plus shared point-kinetics logic |
+| `Vitis/` | HLS-oriented kernels, VCU118 host tooling, Vivado/Vitis scripts, and hardware analysis artifacts |
+| `Verification_Evaluation/` | Verification scripts, reproducibility helpers, checked reference data, and generated-figure tooling |
+| `documentation/` | Documentation entry point, README figures, design notes, and HLS synthesis reports |
 
 Generated outputs should go under ignored output directories such as
 `Verification_Evaluation/outputs/`, `/tmp/...`, or tool-specific build
 directories. The manuscript workspace `paper_writing/` is intentionally ignored
 and is not part of the public repository.
 
-## Hardware Figures
+## Quick Start
 
-**Board-level experimental setup for the host-controlled VCU118
-implementation tests.**
+Install Python dependencies:
 
-<p align="center">
-  <img
-    src="documentation/readme_assets/figure3_board_setup.png"
-    alt="Figure 3: Board-level experimental setup for the host-controlled VCU118 implementation tests."
-    width="360"
-  >
-</p>
+```sh
+python3 -m pip install -r requirements.txt
+```
 
-**Host-FPGA delayed-coupling scheduling.**
-
-![Figure 4: Host-FPGA delayed-coupling scheduling.](documentation/readme_assets/figure4_host_fpga_delayed_coupling.png)
-
-**HLS schedule diagram for the Nz = 200, s = 1 split design study.**
-
-![Figure 12: HLS schedule diagram for the Nz = 200, s = 1 split design study.](documentation/readme_assets/figure12_hls_schedule_nz200_s1.png)
-
-## Prerequisites
-
-- Python 3 with `numpy`, `scipy`, and `matplotlib` for the reference and
-  verification scripts.
-- A C++17 compiler and CMake for the plain C++ and Vitis syntax/build checks.
-- Xilinx/Vivado/Vitis HLS tools only for FPGA synthesis, bitstream generation,
-  programming, or hardware-manager workflows.
-
-Every runnable Python script exposes its runtime inputs through `argparse`.
-Use `--help` before changing case definitions, control insertions, output
-locations, timing repeats, or hardware paths.
-
-## Quick Start: Python Reference Model
-
-Run a short reference simulation with a configurable reactivity insertion:
+Run a short Python reference simulation:
 
 ```sh
 python3 python/main.py \
@@ -79,13 +95,6 @@ python3 python/main.py \
   --no-plots \
   --json
 ```
-
-Common inputs include `--steps`, `--n`, `--outer-dt`, `--control-pcm`,
-`--control-time-s`, `--reactivity-schedule`, `--core-inlet-mode`, and
-`--output-dir`. Use `--set KEY=VALUE` for scalar parameter overrides that are
-not promoted to dedicated flags.
-
-## Quick Start: Plain C++ Solver
 
 Build and run the same-source C++ reference solver:
 
@@ -101,45 +110,12 @@ cmake --build /tmp/msre_cpp_build
   --output-dir /tmp/msre_cpp_smoke
 ```
 
-The C++ executable accepts named inputs such as `--steps`, `--n`,
-`--outer-dt`, `--steady-state-steps`, `--core-inlet-mode`, `--v-core`,
-`--control-pcm`, `--control-time-s`, and `--output-dir`. The older positional
-form is still accepted:
-
-```sh
-msr_plain steps output_dir control_pcm control_time_s
-```
-
-## Quick Start: Vitis And VCU118 Code
-
 Run the local CMake syntax/build check for the HLS-oriented source:
 
 ```sh
 cmake -S Vitis -B /tmp/msre_vitis_build
 cmake --build /tmp/msre_vitis_build
 ```
-
-Inspect user-facing analysis and host-tool interfaces:
-
-```sh
-python3 -m Vitis.analyze_transient_batch_bench --help
-python3 -m Vitis.analyze_fpga_kernel_run --help
-python3 -m Vitis.vcu118.msr_vcu118_host --help
-python3 -m Vitis.vcu118.msr_transient_batch_vcu118_host --help
-```
-
-HLS and Vivado entry points live under `Vitis/hls_modules/` and
-`Vitis/vcu118/`. Example synthesis scripts include:
-
-```sh
-vitis_hls -f Vitis/hls_modules/hls_core_step_n200_s1_10ns_lowlane.tcl
-vitis_hls -f Vitis/hls_modules/hls_bop_step_n200_s1_10ns_lowlane.tcl
-```
-
-Bitstreams, when generated and small enough for GitHub, should be placed under
-`Vitis/bitstreams/`.
-
-## Quick Start: Verification And Evaluation
 
 Run the split-scheduler consistency smoke test:
 
@@ -153,88 +129,80 @@ python3 -m Verification_Evaluation.async_split_prototype \
   --json
 ```
 
-Run a reduced reactivity sweep:
+## Verification Snapshot
+
+The checked verification artifacts include delayed-neutron circulation
+comparisons, transient response metrics, CPU/HLS timing summaries, and board
+readback comparisons.
+
+![Delayed-neutron precursor comparison](Verification_Evaluation/DNP_comparison.png)
+
+Useful entry points:
 
 ```sh
-python3 -m Verification_Evaluation.reactivity_sweep \
-  --quick \
-  --case-pcm 0,-75 \
-  --insertion-time-s 1 \
-  --end-time-s 3 \
-  --n-points 20 \
-  --steady-state-steps 1 \
-  --steady-state-outer-iterations 1 \
-  --output-dir /tmp/msre_reactivity_smoke
+python3 -m Verification_Evaluation.reactivity_sweep --help
+python3 -m Verification_Evaluation.external_validation --help
+python3 -m Verification_Evaluation.generate_evaluation_figures --help
+python3 -m Vitis.analyze_transient_batch_bench --help
+python3 -m Vitis.analyze_fpga_kernel_run --help
 ```
 
-Run a small external delayed-neutron circulation validation:
+## Hardware Figures
 
-```sh
-python3 -m Verification_Evaluation.external_validation \
-  --nodes 20 \
-  --reported-n 20 \
-  --steady-steps 1 \
-  --skip-present-verification \
-  --output-dir /tmp/msre_external_smoke
-```
+The first figure in this README is the clean system overview. The hardware
+evidence is kept below the results-oriented sections.
 
-Inspect generated NPZ output:
+**Host-FPGA delayed-coupling scheduling.**
 
-```sh
-python3 -m Verification_Evaluation.read_npz /tmp/msre_python_smoke/specific_data_0.npz --list-only
-python3 -m Verification_Evaluation.get_npz_data \
-  --simulation-dir /tmp/msre_python_smoke \
-  --output /tmp/msre_neutron_flux.csv \
-  --start-index 0 \
-  --end-index 0 \
-  --step 1
-```
+![Host-FPGA delayed-coupling scheduling](documentation/readme_assets/figure4_host_fpga_delayed_coupling.png)
 
-## Quick Start: Documentation
+**Board-level experimental setup for the host-controlled VCU118 implementation
+tests.**
 
-HLS synthesis reports copied from the Windows/Vitis runs are tracked under:
+<p align="center">
+  <img
+    src="documentation/readme_assets/figure3_board_setup.png"
+    alt="Board-level experimental setup for the host-controlled VCU118 implementation tests."
+    width="360"
+  >
+</p>
 
-```text
-documentation/synthesis_reports/windows_hls_reports/
-```
+**HLS schedule diagram for the Nz = 200, s = 1 split design study.**
 
-README figures are tracked under:
+![HLS schedule diagram for the Nz = 200, s = 1 split design study](documentation/readme_assets/figure12_hls_schedule_nz200_s1.png)
 
-```text
-documentation/readme_assets/
-```
+## Documentation
 
-Design notes live under `documentation/docs/`. These files are documentation
-artifacts only; running simulations and synthesis flows should write new outputs
-to ignored output directories unless the result is intentionally curated.
+Detailed documentation is organized under [`documentation/`](documentation/):
 
-## One-Command Sanity Checks
+- [`model.md`](documentation/docs/model.md): model scope and physical
+  decomposition.
+- [`numerical_reference.md`](documentation/docs/numerical_reference.md):
+  Python reference simulation.
+- [`cpp_solver.md`](documentation/docs/cpp_solver.md): same-source C++ solver.
+- [`fpga_hls_design.md`](documentation/docs/fpga_hls_design.md): HLS split
+  kernels and synthesis reports.
+- [`host_runtime.md`](documentation/docs/host_runtime.md): host-mediated
+  runtime and dual-FPGA protocol.
+- [`verification.md`](documentation/docs/verification.md): numerical
+  verification entry points.
+- [`hardware_results.md`](documentation/docs/hardware_results.md): hardware and
+  timing results.
+- [`reproducibility.md`](documentation/docs/reproducibility.md): artifact
+  reproduction levels and commands.
 
-From the repository root:
+## Citation And Release
 
-```sh
-python3 -m py_compile python/*.py Verification_Evaluation/*.py Vitis/*.py Vitis/vcu118/*.py
-cmake -S C++ -B /tmp/msre_cpp_build && cmake --build /tmp/msre_cpp_build
-cmake -S Vitis -B /tmp/msre_vitis_build && cmake --build /tmp/msre_vitis_build
-python3 -m Verification_Evaluation.async_split_prototype --steps 1 --n 20 --steady-state-steps 1 --json
-python3 -m Verification_Evaluation.reactivity_sweep --quick --case-pcm 0,-75 --insertion-time-s 1 --end-time-s 3 --n-points 20 --steady-state-steps 1 --steady-state-outer-iterations 1 --output-dir /tmp/msre_reactivity_smoke
-```
+Use [`CITATION.cff`](CITATION.cff) when citing this artifact. Release notes are
+tracked in [`CHANGELOG.md`](CHANGELOG.md), and the release checklist is in
+[`RELEASE.md`](RELEASE.md). A DOI/Zenodo badge should be added only after an
+archived release exists.
 
-## Current Hardware Design Notes
+Notebook usage is intentionally limited. Existing notebooks are treated as
+exploratory/reporting artifacts and excluded from GitHub language statistics via
+`.gitattributes`; repeatable outputs should be generated by scripts.
 
-The split design uses two shape-specialized top-level kernels for the
-`Nz = 200, s = 1` hardware study:
+## Safety And Scope
 
-- `core_step_kernel_n200_s1`
-- `bop_step_kernel_n200_s1`
-
-The measured JTAG-AXI board path launches the kernels sequentially under host
-control and includes launch, wait, boundary staging, and scalar readback
-overhead. The same delayed-boundary protocol also supports the host-mediated
-dual-FPGA implementation: the core and BOP kernels can be placed on separate
-VCU118 devices, and the host runtime manages physical-delay boundary channels
-without direct board-to-board communication.
-
-The per-kernel HLS reports are stored in `documentation/synthesis_reports/`.
-They include `csynth` reports, schedule XML, design XML, schedule diagrams, and
-the extracted N80 XML bundle.
+This repository is a research prototype for numerical and hardware-emulation
+studies. It is not a safety-certified reactor analysis tool.

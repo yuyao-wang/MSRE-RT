@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use MSRE-RT, please cite the software artifact."
+title: "MSRE-RT: Reproducible Real-Time Digital-Twin Workflow for a 1-D Flowing-Fuel MSRE Model"
+type: software
+authors:
+  - family-names: Wang
+    given-names: Yuyao
+    alias: "Yuyao (Phoebe)"
+repository-code: "https://github.com/yuyao-wang/MSRE-RT"
+url: "https://github.com/yuyao-wang/MSRE-RT"
+version: "0.1.0"
+license: MIT
+abstract: "A reproducible workflow for Python reference simulation, same-source C++ verification, and host-mediated Vivado/Vitis HLS emulation of a 1-D flowing-fuel MSRE model."
+keywords:
+  - molten-salt reactor
+  - digital twin
+  - real-time emulation
+  - Vitis HLS
+  - FPGA
+  - VCU118
