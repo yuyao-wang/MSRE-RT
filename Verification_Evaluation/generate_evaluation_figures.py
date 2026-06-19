@@ -10,7 +10,10 @@ from pathlib import Path
 
 import numpy as np
 
-import path_setup  # noqa: F401
+try:
+    from . import path_setup
+except ImportError:  # pragma: no cover - direct script execution
+    import path_setup
 from async_split_prototype import run_async_split_transient
 from cross_sections import build_cross_sections, estimate_global_reactivity
 from parameters import DEFAULT_FUEL_FEEDBACK_SCALE, DEFAULT_GRAPHITE_FEEDBACK_SCALE
@@ -52,14 +55,16 @@ from verification_utils import (
 )
 
 
-OUTPUT_ROOT = Path("Verification_Evaluation/outputs")
+REPO_ROOT = path_setup.REPO_ROOT
+OUTPUT_ROOT = REPO_ROOT / "Verification_Evaluation" / "outputs"
+HLS_REPORT_ROOT = REPO_ROOT / "documentation" / "synthesis_reports" / "windows_hls_reports"
 SKIPPED_CASES = {
     "case_11_precision_sensitivity": "Reduced-precision and FPGA precision datasets are not available in this repository.",
 }
 
 HLS_REPORTS = {
-    "core_n200_s1": Path("tmp/windows_hls_reports/core_step_kernel_n200_s1_csynth.rpt"),
-    "bop_n200_s1": Path("tmp/windows_hls_reports/bop_step_kernel_n200_s1_csynth.rpt"),
+    "core_n200_s1": HLS_REPORT_ROOT / "core_step_kernel_n200_s1_csynth.rpt",
+    "bop_n200_s1": HLS_REPORT_ROOT / "bop_step_kernel_n200_s1_csynth.rpt",
 }
 
 AGGRESSIVE_ONE_STEP_METRICS = {

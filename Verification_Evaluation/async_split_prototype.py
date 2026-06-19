@@ -7,7 +7,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-import path_setup  # noqa: F401
+try:
+    from . import path_setup  # noqa: F401
+except ImportError:  # pragma: no cover - direct script execution
+    import path_setup  # noqa: F401
 from HX1 import HX1
 from HX2 import HX2
 from cross_sections import build_cross_sections

@@ -8,7 +8,29 @@ This repository now carries three forms of the same 1D MSR model:
 - verification and evaluation scripts/results in `Verification_Evaluation/`
 - design notes and supporting documentation in `documentation/`
 
+## Repository Layout
+
+- `python/`: source-only Python reference implementation.
+- `C++/`: standalone plain C++ solver plus the shared point-kinetics header.
+- `Vitis/`: HLS kernels, VCU118 host/build scripts, and hardware analysis
+  artifacts.
+- `Verification_Evaluation/`: validation scripts, reusable evaluation helpers,
+  and reference simulation outputs.
+- `documentation/`: implementation notes, support material, and HLS synthesis
+  reports. The copied synthesis reports live in
+  `documentation/synthesis_reports/windows_hls_reports/`.
+
 The conversion goal is not a line-by-line translation. The goal is to preserve the physics step ordering while reshaping the implementation into hardware-schedulable kernels.
+
+## Quick Checks
+
+```sh
+python3 -m py_compile python/*.py Verification_Evaluation/*.py Vitis/*.py Vitis/vcu118/*.py
+cmake -S C++ -B /tmp/msre_cpp_build && cmake --build /tmp/msre_cpp_build
+cmake -S Vitis -B /tmp/msre_vitis_build && cmake --build /tmp/msre_vitis_build
+python3 -m Verification_Evaluation.async_split_prototype --steps 1 --json
+python3 -m Verification_Evaluation.reactivity_sweep --quick
+```
 
 ## Current Vitis Design
 

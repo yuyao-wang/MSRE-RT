@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 
+import argparse
 import copy
 from pathlib import Path
 
 import numpy as np
 
-import path_setup  # noqa: F401
-from main import run_simulation
+try:
+    from . import path_setup
+except ImportError:  # pragma: no cover - direct script execution
+    import path_setup
+import main as model_main
 from parameters import generate_parameters
 from verification_utils import apply_publication_style, ensure_dir, save_figure, write_csv, write_json, plt
 
 
-OUTPUT_DIR = Path("Verification_Evaluation/outputs/case_10_transient_application_corrected")
+OUTPUT_DIR = path_setup.REPO_ROOT / "Verification_Evaluation" / "outputs" / "case_10_transient_application_corrected"
 INSERTION_TIME_S = 300.0
 END_TIME_S = 600.0
 TIME_SPAN = END_TIME_S
@@ -45,10 +49,18 @@ DT_COLORS = {
 }
 
 
-def make_case_params(insertion_pcm, outer_dt=BASELINE_DT_S, end_time_s=END_TIME_S):
-    params = generate_parameters(N=160, steady_state_steps=240, outer_dt=outer_dt)
-    params["steady_state_steps"] = 240
-    params["steady_state_outer_iterations"] = 12
+def make_case_params(
+    insertion_pcm,
+    outer_dt=BASELINE_DT_S,
+    end_time_s=END_TIME_S,
+    insertion_time_s=INSERTION_TIME_S,
+    n_points=160,
+    steady_state_steps=240,
+    steady_state_outer_iterations=12,
+):
+    params = generate_parameters(N=n_points, steady_state_steps=steady_state_steps, outer_dt=outer_dt)
+    params["steady_state_steps"] = steady_state_steps
+    params["steady_state_outer_iterations"] = steady_state_outer_iterations
     params["steady_state_tolerance"] = 2.0e-4
     params["feedback_reactivity_mode"] = "linear_coefficients"
     params["point_kinetics_correction_mode"] = "absolute"
@@ -59,17 +71,35 @@ def make_case_params(insertion_pcm, outer_dt=BASELINE_DT_S, end_time_s=END_TIME_
     if insertion_pcm == 0.0:
         params["reactivity_schedule_pcm"] = [(0.0, 0.0)]
     else:
-        params["reactivity_schedule_pcm"] = [(0.0, 0.0), (INSERTION_TIME_S, float(insertion_pcm))]
+        params["reactivity_schedule_pcm"] = [(0.0, 0.0), (float(insertion_time_s), float(insertion_pcm))]
     return params
 
 
-def run_case(case_def, outer_dt=BASELINE_DT_S, sim_index=None, end_time_s=END_TIME_S):
-    params = make_case_params(case_def["pcm"], outer_dt=outer_dt, end_time_s=end_time_s)
-    result = run_simulation(copy.deepcopy(params), sim_index if sim_index is not None else case_def["index"])
+def run_case(
+    case_def,
+    outer_dt=BASELINE_DT_S,
+    sim_index=None,
+    end_time_s=END_TIME_S,
+    insertion_time_s=INSERTION_TIME_S,
+    n_points=160,
+    steady_state_steps=240,
+    steady_state_outer_iterations=12,
+):
+    params = make_case_params(
+        case_def["pcm"],
+        outer_dt=outer_dt,
+        end_time_s=end_time_s,
+        insertion_time_s=insertion_time_s,
+        n_points=n_points,
+        steady_state_steps=steady_state_steps,
+        steady_state_outer_iterations=steady_state_outer_iterations,
+    )
+    result = model_main.run_simulation(copy.deepcopy(params), sim_index if sim_index is not None else case_def["index"])
     diagnostics = result["system_diagnostics"]
     return {
         "case": case_def,
         "params": params,
+        "insertion_time_s": float(insertion_time_s),
         "result": result,
         "time_s": np.asarray(diagnostics["time"], dtype=float),
         "power_W": np.asarray(diagnostics["core_power"], dtype=float),
@@ -86,22 +116,22 @@ def run_case(case_def, outer_dt=BASELINE_DT_S, sim_index=None, end_time_s=END_TI
     }
 
 
-def baseline_index(time_s):
-    indices = np.where(time_s < INSERTION_TIME_S)[0]
+def baseline_index(time_s, insertion_time_s=INSERTION_TIME_S):
+    indices = np.where(time_s < insertion_time_s)[0]
     if indices.size == 0:
         raise ValueError("No baseline samples exist before insertion time.")
     return int(indices[-1])
 
 
-def first_inserted_index(time_s):
-    indices = np.where(time_s >= INSERTION_TIME_S)[0]
+def first_inserted_index(time_s, insertion_time_s=INSERTION_TIME_S):
+    indices = np.where(time_s >= insertion_time_s)[0]
     if indices.size == 0:
         raise ValueError("No samples exist at or after insertion time.")
     return int(indices[0])
 
 
-def window_mask(time_s, duration_s):
-    return (time_s >= INSERTION_TIME_S) & (time_s <= INSERTION_TIME_S + duration_s)
+def window_mask(time_s, duration_s, insertion_time_s=INSERTION_TIME_S):
+    return (time_s >= insertion_time_s) & (time_s <= insertion_time_s + duration_s)
 
 
 def nearest_index(time_s, target_time_s):
@@ -113,9 +143,10 @@ def compute_prompt_metrics(case_result):
     power_W = case_result["power_W"]
     beta_eff = case_result["effective_beta"]
     rho_pcm = float(case_result["case"]["pcm"])
+    insertion_time_s = float(case_result.get("insertion_time_s", INSERTION_TIME_S))
 
-    idx_pre = baseline_index(time_s)
-    idx_post = first_inserted_index(time_s)
+    idx_pre = baseline_index(time_s, insertion_time_s)
+    idx_post = first_inserted_index(time_s, insertion_time_s)
     power_pre = max(float(power_W[idx_pre]), 1.0e-12)
     beta_pre = float(beta_eff[idx_pre])
     rho_abs = abs(rho_pcm) * 1.0e-5
@@ -145,8 +176,9 @@ def compute_convergence_metrics(case_result):
     power_W = case_result["power_W"]
     beta_eff = case_result["effective_beta"]
     rho_pcm = float(case_result["case"]["pcm"])
-    idx_pre = baseline_index(time_s)
-    idx_post = first_inserted_index(time_s)
+    insertion_time_s = float(case_result.get("insertion_time_s", INSERTION_TIME_S))
+    idx_pre = baseline_index(time_s, insertion_time_s)
+    idx_post = first_inserted_index(time_s, insertion_time_s)
     power_pre = max(float(power_W[idx_pre]), 1.0e-12)
     ratio = power_W / power_pre
     beta_pre = float(beta_eff[idx_pre])
@@ -327,19 +359,58 @@ def make_first_sample_convergence_figure(convergence_rows):
     save_figure(fig, OUTPUT_DIR / "figure_16_m075_first_sample_convergence")
 
 
-def main():
+def run_reactivity_sweep(*, quick=False):
     ensure_dir(OUTPUT_DIR)
+    model_main.SIMULATION_RESULTS_DIR = OUTPUT_DIR / "simulation_results"
+
+    case_definitions = CASE_DEFINITIONS if not quick else CASE_DEFINITIONS[:2]
+    convergence_dts = CONVERGENCE_DTS if not quick else [0.5, 0.25]
+    end_time_s = END_TIME_S if not quick else 3.0
+    convergence_end_time_s = CONVERGENCE_END_TIME_S if not quick else 1.0
+    insertion_time_s = INSERTION_TIME_S if not quick else 1.0
+    n_points = 160 if not quick else 20
+    steady_state_steps = 240 if not quick else 1
+    steady_state_outer_iterations = 12 if not quick else 1
 
     case_results = {}
-    for case_def in CASE_DEFINITIONS:
-        case_results[case_def["id"]] = run_case(case_def, outer_dt=BASELINE_DT_S)
+    for case_def in case_definitions:
+        case_results[case_def["id"]] = run_case(
+            case_def,
+            outer_dt=BASELINE_DT_S,
+            end_time_s=end_time_s,
+            insertion_time_s=insertion_time_s,
+            n_points=n_points,
+            steady_state_steps=steady_state_steps,
+            steady_state_outer_iterations=steady_state_outer_iterations,
+        )
 
     prompt_metric_rows = [
         compute_prompt_metrics(case_results[case_def["id"]])
-        for case_def in CASE_DEFINITIONS
+        for case_def in case_definitions
         if case_def["id"] != "zero"
     ]
     write_csv(OUTPUT_DIR / "table_13_reactivity_step_metrics.csv", list(prompt_metric_rows[0].keys()), prompt_metric_rows)
+
+    if quick:
+        write_json(
+            OUTPUT_DIR / "metadata.json",
+            {
+                "quick": True,
+                "insertion_time_s": insertion_time_s,
+                "end_time_s": end_time_s,
+                "baseline_outer_dt_s": BASELINE_DT_S,
+                "grid_points": n_points,
+                "generated_files": [
+                    "table_13_reactivity_step_metrics.csv",
+                ],
+                "cases": [
+                    {key: value for key, value in case_def.items() if key != "index"}
+                    for case_def in case_definitions
+                ],
+            },
+        )
+        return
+
     write_history_csv(case_results)
     make_prompt_response_figure(case_results, prompt_metric_rows)
     make_appendix_early_window_figure(case_results)
@@ -347,12 +418,12 @@ def main():
     mild_case = {"id": "m075", "label": "-75 pcm", "pcm": -75.0, "index": 201}
     convergence_results = {}
     convergence_rows = []
-    for offset, outer_dt in enumerate(CONVERGENCE_DTS):
+    for offset, outer_dt in enumerate(convergence_dts):
         case_result = run_case(
             mild_case,
             outer_dt=outer_dt,
             sim_index=201 + offset,
-            end_time_s=CONVERGENCE_END_TIME_S,
+            end_time_s=convergence_end_time_s,
         )
         convergence_results[outer_dt] = case_result
         convergence_rows.append(compute_convergence_metrics(case_result))
@@ -372,16 +443,17 @@ def main():
     make_first_sample_convergence_figure(convergence_rows)
 
     metadata = {
-        "insertion_time_s": INSERTION_TIME_S,
+        "insertion_time_s": insertion_time_s,
         "end_time_s": END_TIME_S,
         "baseline_outer_dt_s": BASELINE_DT_S,
         "main_zoom_start_s": MAIN_ZOOM_START_S,
         "main_zoom_end_s": MAIN_ZOOM_END_S,
         "appendix_window_start_s": APPENDIX_WINDOW_START_S,
         "appendix_window_end_s": APPENDIX_WINDOW_END_S,
-        "convergence_end_time_s": CONVERGENCE_END_TIME_S,
-        "grid_points": 160,
-        "convergence_outer_dt_s": CONVERGENCE_DTS,
+        "convergence_end_time_s": convergence_end_time_s,
+        "grid_points": n_points,
+        "convergence_outer_dt_s": convergence_dts,
+        "quick": quick,
         "generated_files": [
             "table_13_reactivity_step_metrics.csv",
             "table_14_m075_first_sample_timestep_convergence.csv",
@@ -393,9 +465,16 @@ def main():
             "figure_16_m075_first_sample_convergence.pdf",
             "figure_data_reactivity_step_histories.csv",
         ],
-        "cases": [{key: value for key, value in case_def.items() if key != "index"} for case_def in CASE_DEFINITIONS],
+        "cases": [{key: value for key, value in case_def.items() if key != "index"} for case_def in case_definitions],
     }
     write_json(OUTPUT_DIR / "metadata.json", metadata)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate transient reactivity insertion sweep outputs.")
+    parser.add_argument("--quick", action="store_true", help="Run a reduced smoke-test sweep.")
+    args = parser.parse_args()
+    run_reactivity_sweep(quick=args.quick)
 
 
 if __name__ == "__main__":

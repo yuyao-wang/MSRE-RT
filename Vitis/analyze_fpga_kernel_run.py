@@ -19,6 +19,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+VITIS_DIR = REPO_ROOT / "Vitis"
 PYTHON_DIR = REPO_ROOT / "python"
 VERIFICATION_DIR = REPO_ROOT / "Verification_Evaluation"
 for path in (PYTHON_DIR, VERIFICATION_DIR, REPO_ROOT):
@@ -915,9 +916,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--out-dir",
         type=Path,
-        default=REPO_ROOT / "vitis" / "analysis_artifacts" / "fpga_compare_20260617",
+        default=VITIS_DIR / "analysis_artifacts" / "fpga_compare_20260617",
     )
-    parser.add_argument("--cpu-runner-src", type=Path, default=REPO_ROOT / "vitis" / "vcu118" / "msr_vcu118_sw_timed.cpp")
+    parser.add_argument("--cpu-runner-src", type=Path, default=VITIS_DIR / "vcu118" / "msr_vcu118_sw_timed.cpp")
     parser.add_argument("--cpu-runner-bin", type=Path, default=Path("/private/tmp/msr_vcu118_sw_timed_n200_s1"))
     parser.add_argument("--cpu-snapshot-dir", type=Path, default=Path("/private/tmp/fpga_cpu_snapshot_remote_20260617"))
     parser.add_argument("--cpu-repeats", type=int, default=200)

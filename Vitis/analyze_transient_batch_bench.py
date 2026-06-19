@@ -14,6 +14,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+VITIS_DIR = REPO_ROOT / "Vitis"
 PYTHON_DIR = REPO_ROOT / "python"
 VERIFICATION_DIR = REPO_ROOT / "Verification_Evaluation"
 for path in (PYTHON_DIR, VERIFICATION_DIR, REPO_ROOT):
@@ -134,7 +135,7 @@ def compile_batch_runner(binary_path: Path, hardware_substeps: int, point_kineti
     ]
     cmd.extend(
         [
-            str(REPO_ROOT / "vitis" / "vcu118" / "msr_transient_batch_sw_timed.cpp"),
+            str(VITIS_DIR / "vcu118" / "msr_transient_batch_sw_timed.cpp"),
             "-o",
             str(binary_path),
         ]
@@ -165,7 +166,7 @@ def compile_same_init_plain_runner(binary_path: Path, hardware_substeps: int, po
         "-DMSR_BATCH_CONTROL_FLOAT=1",
         "-DMSR_PRECURSOR_ANALYTIC_UPDATE=0",
         f"-DMSR_POINT_KINETICS_SOLVER={point_kinetics_solver}",
-        str(REPO_ROOT / "vitis" / "vcu118" / "msr_transient_batch_plain_timed.cpp"),
+        str(VITIS_DIR / "vcu118" / "msr_transient_batch_plain_timed.cpp"),
         "-o",
         str(binary_path),
     ]
@@ -513,7 +514,7 @@ def diag_to_metrics(diag: StepDiagnostics) -> dict[str, float]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Benchmark resident transient batch kernel against plain C++.")
-    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "vitis" / "analysis_artifacts" / "transient_batch_bench_20260618")
+    parser.add_argument("--out-dir", type=Path, default=VITIS_DIR / "analysis_artifacts" / "transient_batch_bench_20260618")
     parser.add_argument("--steps", type=int, default=600)
     parser.add_argument("--hardware-substeps", type=int, default=1)
     parser.add_argument("--insertion-pcm", type=float, default=250.0)

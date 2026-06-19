@@ -11,6 +11,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+VITIS_DIR = REPO_ROOT / "Vitis"
 PYTHON_DIR = REPO_ROOT / "python"
 VERIFICATION_DIR = REPO_ROOT / "Verification_Evaluation"
 for path in (PYTHON_DIR, VERIFICATION_DIR, REPO_ROOT):
@@ -83,7 +84,7 @@ def compile_runner(binary_path: Path, analytic: bool) -> None:
         "-DMSR_FIXED_BOP_NX=200",
         "-DMSR_FIXED_HARDWARE_SUBSTEPS=1",
         f"-DMSR_PRECURSOR_ANALYTIC_UPDATE={1 if analytic else 0}",
-        str(REPO_ROOT / "vitis" / "vcu118" / "msr_vcu118_sw_timed.cpp"),
+        str(VITIS_DIR / "vcu118" / "msr_vcu118_sw_timed.cpp"),
         "-o",
         str(binary_path),
     ]
@@ -375,7 +376,7 @@ def build_csynth_delta(baseline_path: Path, analytic_path: Path) -> dict[str, ob
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Compare RK4 precursor update against analytic precursor update.")
-    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "vitis" / "analysis_artifacts" / "precursor_analytic_update_20260618")
+    parser.add_argument("--out-dir", type=Path, default=VITIS_DIR / "analysis_artifacts" / "precursor_analytic_update_20260618")
     parser.add_argument("--snapshot-dir", type=Path, default=Path("/private/tmp/msr_precursor_snapshot"))
     parser.add_argument("--baseline-bin", type=Path, default=Path("/private/tmp/msr_vcu118_sw_timed_baseline"))
     parser.add_argument("--analytic-bin", type=Path, default=Path("/private/tmp/msr_vcu118_sw_timed_analytic"))

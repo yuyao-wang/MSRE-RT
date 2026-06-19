@@ -10,7 +10,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_LOCAL_OUT_ROOT = REPO_ROOT / "vitis" / "analysis_artifacts" / "remote_vcu118_board_runs_cmd"
+VITIS_DIR = REPO_ROOT / "Vitis"
+DEFAULT_LOCAL_OUT_ROOT = VITIS_DIR / "analysis_artifacts" / "remote_vcu118_board_runs_cmd"
 PROGRAM_RE = re.compile(r"PROGRAM_TIMING DURATION_MS=(?P<value>\S+)")
 PLAN_RE = re.compile(r"PLAN_TIMING DURATION_MS=(?P<value>\S+)")
 KERNEL_RE = re.compile(r"KERNEL_TIMING LABEL=(?P<label>\S+) .* TOTAL_MS=(?P<value>\S+)")
@@ -59,7 +60,7 @@ def cmd_find(path: str, word: str) -> str:
 def decode_final_diagnostics(input_path: Path) -> dict[str, object]:
     result = run_command([
         sys.executable,
-        str(REPO_ROOT / "vitis" / "vcu118" / "msr_transient_batch_vcu118_host.py"),
+        str(VITIS_DIR / "vcu118" / "msr_transient_batch_vcu118_host.py"),
         "decode-final-diagnostics",
         "--input",
         str(input_path),

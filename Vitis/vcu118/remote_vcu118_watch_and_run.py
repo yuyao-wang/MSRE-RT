@@ -10,7 +10,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_LOCAL_OUT_ROOT = REPO_ROOT / "vitis" / "analysis_artifacts" / "remote_vcu118_board_runs"
+VITIS_DIR = REPO_ROOT / "Vitis"
+DEFAULT_LOCAL_OUT_ROOT = VITIS_DIR / "analysis_artifacts" / "remote_vcu118_board_runs"
 TIMING_PATTERNS = {
     "program_ms": re.compile(r"PROGRAM_TIMING DURATION_MS=(?P<value>\S+)"),
     "plan_ms": re.compile(r"PLAN_TIMING DURATION_MS=(?P<value>\S+)"),
@@ -90,7 +91,7 @@ def make_board_run_command(helper_bat: str, plan_file: str) -> str:
 def make_decode_command(diag_path: Path) -> list[str]:
     return [
         sys.executable,
-        str(REPO_ROOT / "vitis" / "vcu118" / "msr_transient_batch_vcu118_host.py"),
+        str(VITIS_DIR / "vcu118" / "msr_transient_batch_vcu118_host.py"),
         "decode-final-diagnostics",
         "--input",
         str(diag_path),

@@ -2,13 +2,16 @@ from pathlib import Path
 
 import numpy as np
 
-import path_setup  # noqa: F401
+try:
+    from . import path_setup
+except ImportError:  # pragma: no cover - direct script execution
+    import path_setup
 from parameters import generate_parameters
 from verification_physics import equivalent_fission_source, steady_precursor_profiles
 from verification_utils import iso_timestamp, write_csv, write_json
 
 
-OUTPUT_DIR = Path("Verification_Evaluation/outputs/external_validation")
+OUTPUT_DIR = path_setup.REPO_ROOT / "Verification_Evaluation" / "outputs" / "external_validation"
 
 BENCHMARK_LOSS_PCM = 212.0
 BENCHMARK_SIGMA_PCM = 6.0

@@ -221,7 +221,7 @@ This diagram was grounded against:
 
 - `vitis/msr_vitis_kernel.cpp`
 - `vitis/msr_vitis_module_tops.cpp`
-- `vitis/analysis_artifacts/fpga_compare_20260617/cross_sections_kernel_cycle_trace.csv`
-- `vitis/analysis_artifacts/fpga_compare_20260617/neutronics_kernel_cycle_trace.csv`
-- `vitis/analysis_artifacts/fpga_compare_20260617/thermal_kernel_cycle_trace.csv`
-- `vitis/analysis_artifacts/fpga_compare_20260617/hx_kernel_cycle_trace.csv`
+- `Vitis/analysis_artifacts/fpga_compare_20260617/cross_sections_kernel_cycle_trace.csv`
+- `Vitis/analysis_artifacts/fpga_compare_20260617/neutronics_kernel_cycle_trace.csv`
+- `Vitis/analysis_artifacts/fpga_compare_20260617/thermal_kernel_cycle_trace.csv`
+- `Vitis/analysis_artifacts/fpga_compare_20260617/hx_kernel_cycle_trace.csv`

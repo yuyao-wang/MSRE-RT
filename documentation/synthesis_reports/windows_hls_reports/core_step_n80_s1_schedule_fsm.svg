@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="722" viewBox="0 0 1180 722">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#3b4a6b"/></marker></defs>
+<rect width="100%" height="100%" fill="#f7f8fc"/>
+<rect x="24" y="24" width="1132" height="120" rx="18" fill="#e9eef9" stroke="#c7d3ec"/>
+<text x="40" y="58" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#1f2940">core_step_kernel_n80_s1</text>
+<text x="40" y="86" font-family="Menlo, Consolas, monospace" font-size="16" font-weight="400" fill="#1f2940">latency 10497..10555 cyc | abs 0.200 ms..0.201 ms | est clk 19.072 ns</text>
+<text x="40" y="114" font-family="Menlo, Consolas, monospace" font-size="16" font-weight="400" fill="#1f2940">II 10498 ~ 10556 | pipeline none | BRAM=614 DSP=1685 FF=176339 LUT=236448</text>
+<rect x="24" y="168" width="310" height="160" rx="16" fill="#fffdf4" stroke="#b8c3db" stroke-width="1.5"/>
+<text x="42" y="196" font-family="Menlo, Consolas, monospace" font-size="16" font-weight="700" fill="#23304d">State 1 (st_id=1)</text>
+<text x="42" y="214" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">384 operations</text>
+<text x="42" y="232" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">Other x174</text>
+<text x="42" y="250" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">AXI-Lite read x106</text>
+<text x="42" y="268" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">PartSelect x103</text>
+<text x="42" y="286" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">SpecInterface x1</text>
+<rect x="370" y="168" width="310" height="160" rx="16" fill="#ffffff" stroke="#b8c3db" stroke-width="1.5"/>
+<text x="388" y="196" font-family="Menlo, Consolas, monospace" font-size="16" font-weight="700" fill="#23304d">State 2 (st_id=2)</text>
+<text x="388" y="214" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">31 operations</text>
+<text x="388" y="232" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">Other x28</text>
+<text x="388" y="250" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">SpecInterface x2</text>
+<text x="388" y="268" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">User call x1</text>
+<text x="388" y="286" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">calls core_step_kernel_imp x1</text>
+<rect x="716" y="168" width="310" height="160" rx="16" fill="#ffffff" stroke="#b8c3db" stroke-width="1.5"/>
+<text x="734" y="196" font-family="Menlo, Consolas, monospace" font-size="16" font-weight="700" fill="#23304d">State 3 (st_id=3)</text>
+<text x="734" y="214" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">16 operations</text>
+<text x="734" y="232" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">SpecInterface x7</text>
+<text x="734" y="250" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">SpecBitsMap x6</text>
+<text x="734" y="268" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">SpecTopModule x1</text>
+<text x="734" y="286" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">User call x1</text>
+<text x="734" y="304" font-family="Menlo, Consolas, monospace" font-size="14" font-weight="400" fill="#23304d">calls core_step_kernel_imp x1</text>
+<line x1="328.0" y1="248.0" x2="376.0" y2="248.0" stroke="#3b4a6b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="352.0" y="238.0" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="13" fill="#46557b">t435</text>
+<line x1="674.0" y1="248.0" x2="722.0" y2="248.0" stroke="#3b4a6b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="698.0" y="238.0" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="13" fill="#46557b">t436</text>
+<rect x="24" y="392" width="1132" height="330" rx="18" fill="#ffffff" stroke="#c7d3ec"/>
+<text x="40" y="420" font-family="Menlo, Consolas, monospace" font-size="18" font-weight="700" fill="#1f2940">Hierarchy / module latency</text>
+<text x="40" y="444" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">- core_step_kernel_n80_s1 | 10497..10555 cyc @ 19.072 ns</text>
+<text x="40" y="462" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">  - core_step_kernel_imp | 10495..10553 cyc @ 19.072 ns</text>
+<text x="40" y="480" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">    - neutronics_kernel | 3091..3149 cyc @ 8.917 ns</text>
+<text x="40" y="498" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">      - neutronics_rhs | 451 cyc @ 8.750 ns</text>
+<text x="40" y="516" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">        - diffusion_term | 121 cyc @ 8.579 ns</text>
+<text x="40" y="534" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">        - diffusion_term | 121 cyc @ 8.579 ns</text>
+<text x="40" y="552" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">      - combine_neutronics | 326 cyc @ 8.506 ns</text>
+<text x="40" y="570" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">      - load_neutronics_stag | 296 cyc @ 8.506 ns</text>
+<text x="40" y="588" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">      - sample_precursor_his | 2 cyc @ 5.426 ns</text>
+<text x="40" y="606" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">    - cross_sections_kerne | 63 cyc @ 8.579 ns</text>
+<text x="40" y="624" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">    - thermal_kernel | 792 cyc @ 9.784 ns</text>
+<text x="40" y="642" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">      - thermal_rhs | 125 cyc @ 8.506 ns</text>
+<text x="40" y="660" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">      - load_thermal_stage | 48 cyc @ 8.506 ns</text>
+<text x="40" y="678" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">    - estimate_global_rho | 278 cyc @ 19.072 ns</text>
+<text x="40" y="696" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">      - trapz_uniform | 97 cyc @ 19.072 ns</text>
+<text x="40" y="714" font-family="Menlo, Consolas, monospace" font-size="14" fill="#23304d">    - trapz_uniform | 97 cyc @ 19.072 ns</text>
+</svg>
