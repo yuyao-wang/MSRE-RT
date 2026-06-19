@@ -40,7 +40,7 @@ implementation tests.**
   <img
     src="documentation/readme_assets/figure3_board_setup.png"
     alt="Figure 3: Board-level experimental setup for the host-controlled VCU118 implementation tests."
-    width="420"
+    width="360"
   >
 </p>
 
