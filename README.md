@@ -7,10 +7,12 @@ faster-than-real-time transient studies.
 
 [![Smoke tests](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml/badge.svg)](https://github.com/yuyao-wang/MSRE-RT/actions/workflows/smoke.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
-[![Artifact](https://img.shields.io/badge/artifact-reproducible-2E7D32.svg)](documentation/docs/reproducibility.md)
-[![Platform](https://img.shields.io/badge/platform-VCU118-0B7285.svg)](Vitis/vcu118/README.md)
-[![Runtime](https://img.shields.io/badge/runtime-faster--than--real--time-6A1B9A.svg)](Vitis/analysis_artifacts/fpga_compare_20260617/report.md)
+[![Artifact](https://img.shields.io/badge/artifact-reproducible-2E7D32.svg)](docs/docs/reproducibility.md)
+[![Platform](https://img.shields.io/badge/platform-VCU118-0B7285.svg)](fpga_emulation/vcu118/README.md)
+[![Runtime](https://img.shields.io/badge/runtime-faster--than--real--time-6A1B9A.svg)](fpga_emulation/analysis_artifacts/fpga_compare_20260617/report.md)
 [![Digital Twin](https://img.shields.io/badge/digital--twin-MSRE--RT-1F4E79.svg)](README.md)
+
+![System overview](docs/readme_assets/overview.png)
 
 ## System Contribution
 
@@ -37,8 +39,8 @@ faster-than-real-time transient studies.
 | Board readback consistency | VCU118 snapshot readback matches the verification-oriented software kernel for the reported core/BOP boundary metrics |
 
 The front-page latency numbers come from
-[`Vitis/analysis_artifacts/fpga_compare_20260617/report.md`](Vitis/analysis_artifacts/fpga_compare_20260617/report.md).
-Tracked synthesis reports under `documentation/synthesis_reports/` preserve the
+[`fpga_emulation/analysis_artifacts/fpga_compare_20260617/report.md`](fpga_emulation/analysis_artifacts/fpga_compare_20260617/report.md).
+Tracked synthesis reports under `docs/synthesis_reports/` preserve the
 corresponding report artifacts used for hardware discussion.
 
 ## What You Can Reproduce
@@ -60,22 +62,22 @@ bash scripts/run_smoke_tests.sh
 
 ## Artifact Organization
 
-The artifact is organized around three roles: a numerical reference model for
-transient behavior, a verification-oriented software implementation for
-consistency testing, and FPGA-oriented kernels for host-mediated real-time
-emulation. This structure supports cross-level checking of model behavior,
-coupling semantics, and hardware execution characteristics.
+The artifact is organized by engineering role rather than programming
+language. The numerical reference establishes expected transient behavior; the
+hardware-mapping implementation translates and checks the deployable
+algorithms; and the FPGA-emulation layer evaluates split-kernel execution. The
+verification suite checks consistency across all three levels.
 
-| Path | Purpose |
-| --- | --- |
-| `python/` | Numerical reference model and physics modules |
-| `C++/` | Verification-oriented software implementation plus shared point-kinetics logic |
-| `Vitis/` | FPGA-oriented kernels, VCU118 host tooling, Vivado/Vitis scripts, and hardware analysis artifacts |
-| `Verification_Evaluation/` | Verification scripts, reproducibility helpers, checked reference data, and generated-figure tooling |
-| `documentation/` | Documentation entry point, README figures, design notes, and synthesis reports |
+| Path | Engineering role | Primary implementation |
+| --- | --- | --- |
+| `reference_model/` | Numerical reference for transient behavior and model exploration | Python |
+| `hardware_mapping/` | Deployment-oriented algorithm mapping and pre-FPGA consistency checks | C++17 |
+| `fpga_emulation/` | Split kernels, host orchestration, synthesis, and VCU118 tooling | Vitis HLS C++, Python, Tcl |
+| `verification/` | Cross-level numerical checks, transient evaluation, and reproducibility utilities | Python |
+| `docs/` | Model, implementation, hardware, and reproducibility documentation | Markdown, report artifacts |
 
 Generated outputs should go under ignored output directories such as
-`Verification_Evaluation/outputs/`, `/tmp/...`, or tool-specific build
+`verification/outputs/`, `/tmp/...`, or tool-specific build
 directories. The manuscript workspace `paper_writing/` is intentionally ignored
 and is not part of the public repository.
 
@@ -87,10 +89,10 @@ Install Python dependencies:
 python3 -m pip install -r requirements.txt
 ```
 
-Run a short Python reference simulation:
+Run a short numerical-reference simulation (Python):
 
 ```sh
-python3 python/main.py \
+python3 reference_model/main.py \
   --steps 2 \
   --n 20 \
   --steady-state-steps 1 \
@@ -101,10 +103,10 @@ python3 python/main.py \
   --json
 ```
 
-Build and run the same-source C++ reference solver:
+Build and run the hardware-mapping implementation (C++17):
 
 ```sh
-cmake -S C++ -B /tmp/msre_cpp_build
+cmake -S hardware_mapping -B /tmp/msre_cpp_build
 cmake --build /tmp/msre_cpp_build
 /tmp/msre_cpp_build/msr_plain \
   --steps 2 \
@@ -115,17 +117,17 @@ cmake --build /tmp/msre_cpp_build
   --output-dir /tmp/msre_cpp_smoke
 ```
 
-Run the local CMake syntax/build check for the FPGA-oriented source:
+Run the local syntax/build check for the FPGA-emulation source (Vitis HLS C++):
 
 ```sh
-cmake -S Vitis -B /tmp/msre_vitis_build
+cmake -S fpga_emulation -B /tmp/msre_vitis_build
 cmake --build /tmp/msre_vitis_build
 ```
 
 Run the split-scheduler consistency smoke test:
 
 ```sh
-python3 -m Verification_Evaluation.async_split_prototype \
+python3 -m verification.async_split_prototype \
   --steps 1 \
   --n 20 \
   --steady-state-steps 1 \
@@ -143,11 +145,11 @@ readback comparisons.
 Useful entry points:
 
 ```sh
-python3 -m Verification_Evaluation.reactivity_sweep --help
-python3 -m Verification_Evaluation.external_validation --help
-python3 -m Verification_Evaluation.generate_evaluation_figures --help
-python3 -m Vitis.analyze_transient_batch_bench --help
-python3 -m Vitis.analyze_fpga_kernel_run --help
+python3 -m verification.reactivity_sweep --help
+python3 -m verification.external_validation --help
+python3 -m verification.generate_evaluation_figures --help
+python3 -m fpga_emulation.analyze_transient_batch_bench --help
+python3 -m fpga_emulation.analyze_fpga_kernel_run --help
 ```
 
 ## Hardware Figures
@@ -157,14 +159,14 @@ evidence is kept below the results-oriented sections.
 
 **Host-FPGA delayed-coupling scheduling.**
 
-![Host-FPGA delayed-coupling scheduling](documentation/readme_assets/figure4_host_fpga_delayed_coupling.png)
+![Host-FPGA delayed-coupling scheduling](docs/readme_assets/figure4_host_fpga_delayed_coupling.png)
 
 **Board-level experimental setup for the host-controlled VCU118 implementation
 tests.**
 
 <p align="center">
   <img
-    src="documentation/readme_assets/figure3_board_setup.png"
+    src="docs/readme_assets/figure3_board_setup.png"
     alt="Board-level experimental setup for the host-controlled VCU118 implementation tests."
     width="360"
   >
@@ -172,26 +174,29 @@ tests.**
 
 **HLS schedule diagram for the Nz = 200, s = 1 split design study.**
 
-![HLS schedule diagram for the Nz = 200, s = 1 split design study](documentation/readme_assets/figure12_hls_schedule_nz200_s1.png)
+![HLS schedule diagram for the Nz = 200, s = 1 split design study](docs/readme_assets/figure12_hls_schedule_nz200_s1.png)
 
 ## Documentation
 
-Detailed documentation is organized under [`documentation/`](documentation/):
+Detailed documentation is organized under [`docs/`](docs/):
 
-- [`model.md`](documentation/docs/model.md): model scope and physical
+- [`model.md`](docs/docs/model.md): model scope and physical
   decomposition.
-- [`numerical_reference.md`](documentation/docs/numerical_reference.md):
+- [`numerical_reference.md`](docs/docs/numerical_reference.md):
   Python reference simulation.
-- [`cpp_solver.md`](documentation/docs/cpp_solver.md): same-source C++ solver.
-- [`fpga_hls_design.md`](documentation/docs/fpga_hls_design.md): HLS split
+- [`hardware_mapping.md`](docs/docs/hardware_mapping.md): deployment-oriented
+  C++ implementation and verification role.
+- [`hardware_mapping_to_fpga.md`](docs/docs/hardware_mapping_to_fpga.md):
+  mapping from the software implementation to FPGA-oriented kernels.
+- [`fpga_hls_design.md`](docs/docs/fpga_hls_design.md): HLS split
   kernels and synthesis reports.
-- [`host_runtime.md`](documentation/docs/host_runtime.md): host-mediated
+- [`host_runtime.md`](docs/docs/host_runtime.md): host-mediated
   runtime and dual-FPGA-ready protocol.
-- [`verification.md`](documentation/docs/verification.md): numerical
+- [`verification.md`](docs/docs/verification.md): numerical
   verification entry points.
-- [`hardware_results.md`](documentation/docs/hardware_results.md): hardware and
+- [`hardware_results.md`](docs/docs/hardware_results.md): hardware and
   timing results.
-- [`reproducibility.md`](documentation/docs/reproducibility.md): artifact
+- [`reproducibility.md`](docs/docs/reproducibility.md): artifact
   reproduction levels and commands.
 
 ## Citation And Release
