@@ -4,7 +4,8 @@ All notable changes to this repository should be documented here.
 
 ## [Unreleased]
 
-No unreleased changes.
+- Added the accepted *Annals of Nuclear Energy* article as the preferred
+  citation in `README.md` and `CITATION.cff`.
 
 ## [0.1.1] - 2026-06-19
 

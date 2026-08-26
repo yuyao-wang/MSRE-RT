@@ -198,10 +198,25 @@ Detailed documentation is organized under [`docs/`](docs/):
 
 ## Citation And Release
 
-Use [`CITATION.cff`](CITATION.cff) when citing this artifact. Release notes are
-tracked in [`CHANGELOG.md`](CHANGELOG.md), and the release checklist is in
-[`RELEASE.md`](RELEASE.md). A DOI/Zenodo badge should be added only after an
-archived release exists.
+The article associated with MSRE-RT has been accepted for publication in
+*Annals of Nuclear Energy*. The publisher proof identifies this repository as
+the article's data-availability link. If you use MSRE-RT, please cite:
+
+```bibtex
+@article{wang2026digitaltwin,
+  title   = {A Digital-Twin of the {MSRE}: Finite-Difference Modeling and Host-Mediated Dual-{FPGA} Real-Time Emulation},
+  author  = {Wang, Yuyao and Wang, Yulin and Chen, Weiran and Dinavahi, Venkata},
+  journal = {Annals of Nuclear Energy},
+  year    = {2026},
+  doi     = {10.1016/j.anucene.2026.112667},
+  note    = {Accepted for publication}
+}
+```
+
+The same preferred citation is recorded in [`CITATION.cff`](CITATION.cff).
+Release notes are tracked in [`CHANGELOG.md`](CHANGELOG.md), and the release
+checklist is in [`RELEASE.md`](RELEASE.md). A software DOI/Zenodo badge should
+be added only after an archived release exists.
 
 Notebook usage is intentionally limited. Existing notebooks are treated as
 exploratory/reporting artifacts and excluded from GitHub language statistics via

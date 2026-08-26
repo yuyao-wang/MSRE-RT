@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use MSRE-RT, please cite the software artifact."
+message: "If you use MSRE-RT, please cite the associated article."
 title: "MSRE-RT: Reproducible Real-Time Digital-Twin Workflow for a 1-D Flowing-Fuel MSRE Model"
 type: software
 authors:
@@ -18,3 +18,18 @@ keywords:
   - Vitis HLS
   - FPGA
   - VCU118
+preferred-citation:
+  type: article
+  title: "A digital-twin of the MSRE: Finite-difference modeling and host-mediated dual-FPGA real-time emulation"
+  authors:
+    - family-names: Wang
+      given-names: Yuyao
+    - family-names: Wang
+      given-names: Yulin
+    - family-names: Chen
+      given-names: Weiran
+    - family-names: Dinavahi
+      given-names: Venkata
+  journal: "Annals of Nuclear Energy"
+  year: 2026
+  doi: "10.1016/j.anucene.2026.112667"
